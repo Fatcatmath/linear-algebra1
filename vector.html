@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>向量的坐标表示</title>
+  <link rel="shortcut icon" href="img/gatech.gif"/>
+
+  <!-- 引入外部样式表：demo.css 负责页面的整体布局和美观 -->
+  <link rel="stylesheet" href="css/demo.css?vers=2759ff">
+
+  <style>
+    /* 此处可添加页面特定的CSS样式，当前为空 */
+  </style>
+
+</head>
+<body>
+  <!-- 引入核心JavaScript库：demo.js 提供了Demo、Color、DomReady等基础类和工具函数 -->
+  <script src="js/demo.js?vers=77646a"></script>
+
+  <script type="text/javascript">
+    "use strict"; // 启用严格模式，有助于发现代码中的潜在问题
+
+    // 等待DOM（文档对象模型）完全加载和解析后再执行代码
+    DomReady.ready(function() {
+      var lineColor, vecColor; // 声明变量，用于存储颜色对象
+
+      // 初始化颜色对象：分别用于向量本身和坐标辅助线
+      vecColor = new Color("green");   // 向量颜色：绿色
+      lineColor = new Color("blue");   // 辅助线颜色：蓝色
+
+      // 创建一个新的演示实例
+      new Demo({
+        // 配置Mathbox（一个用于数学可视化的库）
+        mathbox: {
+          mathbox: {
+            warmup: 10,      // 预热时间（毫秒）
+            splash: false,   // 禁用启动时的动画效果
+            inspect: false   // 禁用检查模式
+          }
+        },
+        // 配置相机初始位置（x, y, z）
+        camera: {
+          position: [3, -1, 1.5]
+        }
+      }, function() {
+        // 这个回调函数在Demo环境准备好后执行
+        var a, b, c, color, gui, origin, params, update, vector, view;
+        
+        // 将mathbox实例暴露到全局window对象，方便调试
+        window.mathbox = this.mathbox;
+        
+        // 创建一个新的3D视图，并显示坐标轴
+        view = this.view({
+          axes: true
+        });
+
+        // 设置页面标题下方的说明文字和公式显示区域
+        // <span id="vector-here"> 将用于动态渲染LaTeX格式的向量公式
+        this.caption('<p><span id="vector-here"></span></p>\n<p>[点击并拖动 v 和 w 的箭头来移动它]</p>');
+        
+        // 定义向量的起点（原点）和初始终点坐标
+        origin = [0, 0, 0];
+        vector = [5, 3, 4];
+        color = vecColor; // 指定向量颜色
+
+        // 调用Demo库的方法，在3D视图中绘制一个带标签的向量
+        this.labeledVectors(view, {
+          vectors: [vector],   // 向量的终点坐标
+          origins: [origin],   // 向量的起点坐标
+          colors: [color],     // 向量的颜色
+          labels: ['v']        // 向量的标签
+        });
+
+        // 使用mathbox的链式调用，绘制从原点到向量终点的“脚手架”辅助线
+        view.array({
+          channels: 3,
+          width: 4,
+          // 定义4个点的坐标，用于绘制辅助线
+          expr: function(emit, i) {
+            switch (i) {
+              case 0: return emit.apply(null, origin);                          // 点1: 原点
+              case 1: return emit(vector[0], origin[1], origin[2]);             // 点2: (x, 0, 0)
+              case 2: return emit(vector[0], vector[1], origin[2]);             // 点3: (x, y, 0)
+              case 3: return emit.apply(null, vector);                          // 点4: 向量终点 (x, y, z)
+            }
+          }
+        }).line({ // 将上面定义的点连接成线
+          classes: ["linear-combo"],
+          color: lineColor.arr(),  // 使用蓝色
+          opacity: 0.75,           // 设置透明度
+          width: 4,                // 设置线宽
+          zIndex: 1                // 设置图层深度，确保辅助线在向量下方
+        }).array({
+          channels: 3,
+          width: 3,
+          // 定义3个点的坐标，用于放置坐标值标签
+          expr: function(emit, i) {
+            switch (i) {
+              case 0: return emit((origin[0] + vector[0]) / 2, origin[1], origin[2]); // X坐标标签位置
+              case 1: return emit(vector[0], (origin[1] + vector[1]) / 2, origin[2]); // Y坐标标签位置
+              case 2: return emit(vector[0], vector[1], (origin[2] + vector[2]) / 2); // Z坐标标签位置
+            }
+          }
+        }).text({ // 在指定位置渲染坐标值文本
+          live: true, // 开启实时更新
+          width: 3,
+          expr: function(emit, i) {
+            // 计算并发射每个坐标轴上的分量值，保留两位小数
+            return emit((vector[i] - origin[i]).toFixed(2));
+          }
+        }).label({ // 为文本添加背景标签，使其更清晰
+          outline: 0,
+          background: "black",
+          color: lineColor.arr(),
+          offset: [25, 0],
+          size: 15,
+          zIndex: 3
+        });
+
+        // 定义用于dat.GUI控制器的参数对象
+        params = {
+          a: vector[0], // X轴分量
+          b: vector[1], // Y轴分量
+          c: vector[2]  // Z轴分量
+        };
+
+        // 创建一个dat.GUI实例，用于生成交互式控制面板
+        gui = new dat.GUI();
+
+        // 添加三个滑动条控制器，分别控制x, y, z分量
+        // 参数范围：-10 到 10，步长：0.1，并开启实时监听
+        a = gui.add(params, 'a', -10, 10).step(0.1).listen();
+        b = gui.add(params, 'b', -10, 10).step(0.1).listen();
+        c = gui.add(params, 'c', -10, 10).step(0.1).listen();
+
+        // 定义更新函数：当参数变化时，更新整个演示
+        update = (function(_this) {
+          return function() {
+            // 根据滑动条的值更新向量的终点坐标
+            vector[0] = params.a + origin[0];
+            vector[1] = params.b + origin[1];
+            vector[2] = params.c + origin[2];
+            
+            // 使用KaTeX库，将向量公式渲染到页面的指定位置
+            // 公式格式为: \color{green}v = \begin{bmatrix} x \\ y \\ z \end{bmatrix}
+            return katex.render(("\\color{" + (vecColor.str()) + "}v = ") + _this.texVector([params.a, params.b, params.c], {
+              color: lineColor
+            }), document.getElementById("vector-here"));
+          };
+        })(this);
+
+        // 为每个滑动条的change事件绑定update函数
+        a.onChange(update);
+        b.onChange(update);
+        c.onChange(update);
+
+        // 初始化时调用一次update函数，以显示初始的向量公式
+        update();
+
+        // 启用向量的拖拽功能
+        return this.draggable(view, {
+          points: [origin, vector], // 可拖拽的点：原点和向量终点
+          size: 30,                 // 拖拽热点的大小
+          hiliteColor: [0, 1, 1, .75], // 鼠标悬停时的高亮颜色（青色）
+          onDrag: function(vec) {   // 拖拽时的回调函数
+            // this.dragging === 0 表示正在拖拽第一个点（原点）
+            if (this.dragging === 0) {
+              // 更新向量终点坐标，使得向量相对于原点的位置不变
+              vector[0] = vec.x + params.a;
+              vector[1] = vec.y + params.b;
+              return vector[2] = vec.z + params.c;
+            } else { // this.dragging === 1 表示正在拖拽第二个点（向量终点）
+              // 限制拖拽后的坐标范围在-10到10之间
+              vec.clampScalar(-10, 10);
+              
+              // 根据新的终点位置更新参数对象中的a, b, c值
+              params.a = vec.x - origin[0];
+              params.b = vec.y - origin[1];
+              params.c = vec.z - origin[2];
+              
+              // 调用update函数，同步更新所有相关的显示（向量、公式、坐标值）
+              return update();
+            }
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>

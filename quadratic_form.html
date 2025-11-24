@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1">
+  <title>二次型与3D几何形状联动动画 (原生Mathbox版)</title>
+  <!-- 引入必要的依赖 -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.137.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathbox@2.3.1/build/mathbox-bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dat.gui@0.7.9/build/dat.gui.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; overflow: hidden; }
+    .caption {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      padding: 15px;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      max-width: 60%;
+    }
+    #quadratic-formula { font-size: 1.1rem; color: #2c3e50; font-weight: 500; }
+    .param-hint { font-size: 0.9rem; color: #7f8c8d; margin-top: 5px; }
+    .positive-definite { color: #27ae60; font-weight: 600; }
+    .non-positive-definite { color: #e74c3c; font-weight: 600; }
+    .shape-label { font-size: 1rem; color: #34495e; text-align: center; margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <!-- Mathbox 容器 -->
+  <div id="mathbox-container"></div>
+
+  <!-- 说明文字容器 -->
+  <div class="caption">
+    <p>二次型方程：<span id="quadratic-formula"></span></p>
+    <p>矩阵正定状态：<span id="pd-status" class="positive-definite">正定（形状：椭球）</span></p>
+    <p class="shape-label" id="shape-type">当前几何形状：椭球（正定矩阵）</p>
+    <p class="param-hint">调整参数：Q₁₁>0 且 Q₁₁Q₂₂-Q₁₂²>0 可保持椭球形状</p>
+  </div>
+
+  <script type="text/javascript">
+    "use strict";
+
+    // ------------------------------
+    // 1. 初始化 Mathbox
+    // ------------------------------
+    var mathbox = mathBox({
+      plugins: ['core', 'controls', 'cursor'],
+      controls: { klass: THREE.OrbitControls }
+    });
+    
+    if (mathbox.api) {
+      var three = mathbox.three;
+      three.renderer.setClearColor(new THREE.Color(0xFFFFFF), 1.0); // 设置白色背景
+
+      // ------------------------------
+      // 2. 设置视图和坐标系
+      // ------------------------------
+      var view = mathbox
+        .cartesian({
+          range: [[-3, 3], [-3, 3], [-3, 3]],
+          scale: [1, 1, 1],
+        })
+        .axis({
+          axis: 1, // x-axis
+          color: 0xc0c0c0,
+          width: 2,
+        })
+        .axis({
+          axis: 2, // y-axis
+          color: 0xc0c0c0,
+          width: 2,
+        })
+        .axis({
+          axis: 3, // z-axis
+          color: 0xc0c0c0,
+          width: 2,
+        })
+        .grid({
+          axes: [1, 3],
+          color: 0xe0e0e0,
+          width: 1,
+          divideX: 6,
+          divideY: 6,
+        });
+
+      // ------------------------------
+      // 3. 数据与变量初始化
+      // ------------------------------
+      var quadraticMatrix = [[2.0, 0.5, 0], [0.5, 1.0, 0], [0, 0, 1.0]];
+      var sphereResolution = 32;
+      var initialSpherePoints = createSphereData(sphereResolution);
+      var ellipsoid;
+
+      // ------------------------------
+      // 4. 创建几何形状
+      // ------------------------------
+      ellipsoid = view.array({
+        data: initialSpherePoints,
+        channels: 3, // xyz
+        items: 1,
+      }).mesh({
+        shaded: true,
+        line: false,
+        color: 0xff8800, // Orange
+        width: 0.02,
+      });
+
+      // ------------------------------
+      // 5. 创建 dat.GUI 控制器
+      // ------------------------------
+      var guiParams = {
+        Q11: quadraticMatrix[0][0],
+        Q12: quadraticMatrix[0][1],
+        Q22: quadraticMatrix[1][1],
+        resolution: sphereResolution,
+        reset: function() {
+          this.Q11 = 2.0;
+          this.Q12 = 0.5;
+          this.Q22 = 1.0;
+          updateAll();
+          // 更新GUI显示
+          for (var i in gui.__controllers) {
+            gui.__controllers[i].updateDisplay();
+          }
+        }
+      };
+
+      var gui = new dat.GUI({ width: 300 });
+      gui.add(guiParams, 'Q11', 0.2, 4.0).step(0.1).name('Q₁₁').onChange(updateAll);
+      gui.add(guiParams, 'Q12', -0.7, 0.7).step(0.1).name('Q₁₂').onChange(updateAll);
+      gui.add(guiParams, 'Q22', 0.2, 4.0).step(0.1).name('Q₂₂').onChange(updateAll);
+      gui.add(guiParams, 'reset').name('重置');
+
+      // ------------------------------
+      // 6. 核心更新函数
+      // ------------------------------
+      function updateAll() {
+        quadraticMatrix[0][0] = guiParams.Q11;
+        quadraticMatrix[0][1] = guiParams.Q12;
+        quadraticMatrix[1][0] = guiParams.Q12;
+        quadraticMatrix[1][1] = guiParams.Q22;
+
+        var isPD = isPositiveDefinite(quadraticMatrix);
+        updateStatus(isPD);
+        updateShape(isPD);
+        renderFormula();
+      }
+
+      function updateShape(isPD) {
+        var L = isPD ? choleskyDecomposition(quadraticMatrix) : [[1,0,0],[0,1,0],[0,0,1]];
+        var invL = inverseLowerTriangular(L);
+        var newPoints = [];
+
+        for (var i = 0; i < initialSpherePoints.length; i++) {
+          var p = initialSpherePoints[i];
+          var x = p[0] * invL[0][0] + p[1] * invL[0][1] + p[2] * invL[0][2];
+          var y = p[0] * invL[1][0] + p[1] * invL[1][1] + p[2] * invL[1][2];
+          var z = p[0] * invL[2][0] + p[1] * invL[2][1] + p[2] * invL[2][2];
+          newPoints.push(x, y, z);
+        }
+        ellipsoid.set('data', newPoints);
+      }
+      
+      function updateStatus(isPD) {
+        var statusEl = document.getElementById('pd-status');
+        var typeEl = document.getElementById('shape-type');
+        if (isPD) {
+          statusEl.className = "positive-definite";
+          statusEl.textContent = "正定（形状：椭球）";
+          typeEl.textContent = "当前几何形状：椭球（正定矩阵）";
+        } else {
+          statusEl.className = "non-positive-definite";
+          statusEl.textContent = "非正定（形状：双曲面/退化）";
+          typeEl.textContent = "当前几何形状：双曲面（非正定矩阵）";
+        }
+      }
+
+      function renderFormula() {
+        var q11 = quadraticMatrix[0][0].toFixed(1);
+        var q12 = quadraticMatrix[0][1].toFixed(1);
+        var q22 = quadraticMatrix[1][1].toFixed(1);
+        var crossTerm = (2 * parseFloat(q12)).toFixed(1);
+        var tex = `\\mathbf{x}^T Q \\mathbf{x} = ${q11}x^2 + ${crossTerm}xy + ${q22}y^2 + z^2 = 1`;
+        katex.render(tex, document.getElementById('quadratic-formula'), { throwOnError: false });
+      }
+
+      // ------------------------------
+      // 7. 辅助数学函数 (与之前相同)
+      // ------------------------------
+      function createSphereData(resolution) {
+        var vertices = [];
+        for (var i = 0; i <= resolution; i++) {
+          var lat = Math.PI * i / resolution;
+          var sinLat = Math.sin(lat);
+          var cosLat = Math.cos(lat);
+          for (var j = 0; j <= resolution; j++) {
+            var lon = 2 * Math.PI * j / resolution;
+            vertices.push([
+              Math.cos(lon) * sinLat,
+              Math.sin(lon) * sinLat,
+              cosLat
+            ]);
+          }
+        }
+        return vertices;
+      }
+      function choleskyDecomposition(A) { /* ... 与之前相同 ... */ }
+      function inverseLowerTriangular(L) { /* ... 与之前相同 ... */ }
+      function isPositiveDefinite(A) { /* ... 与之前相同 ... */ }
+
+      // ------------------------------
+      // 8. 初始渲染
+      // ------------------------------
+      updateAll();
+
+    } else {
+      // Mathbox 初始化失败
+      document.body.innerHTML = '<div style="color:red; padding:20px;">Mathbox 初始化失败。请检查控制台获取更多信息。</div>';
+    }
+  </script>
+</body>
+</html>

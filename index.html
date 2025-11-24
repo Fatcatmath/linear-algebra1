@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>线性代数互动演示库 | Linear Algebra Interactive Demos</title>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 40px 0; 
+            background-color: #f5f5f5; 
+            font-family: "Arial", "Microsoft YaHei", sans-serif; 
+            line-height: 1.6;
+            color: #333;
+        }
+        .container { 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            padding: 0 20px; 
+        }
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        h1 { 
+            color: #2c3e50; 
+            font-size: 2.8rem; 
+            margin-bottom: 15px;
+            font-weight: 300;
+        }
+        .intro {
+            color: #555;
+            max-width: 800px;
+            margin: 0 auto 30px;
+            font-size: 1.2rem;
+        }
+        .categories {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 30px;
+            margin-top: 50px;
+        }
+        .category {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .category:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+        }
+        .category h2 {
+            color: #3498db;
+            margin-top: 0;
+            border-bottom: 2px solid #f1f1f1;
+            padding-bottom: 12px;
+            font-weight: 600;
+        }
+        .doc-list { 
+            list-style: none; 
+            padding: 0; 
+            margin-top: 20px;
+        }
+        .doc-item { 
+            margin: 12px 0; 
+            padding-left: 20px;
+            position: relative;
+        }
+        .doc-item:before {
+            content: "•";
+            color: #3498db;
+            font-size: 1.5rem;
+            position: absolute;
+            left: 0;
+            top: -5px;
+        }
+        .doc-link { 
+            text-decoration: none; 
+            color: #2980b9; 
+            font-size: 1.05rem; 
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+        .doc-link:hover { 
+            color: #e74c3c; 
+            transform: translateX(5px);
+        }
+        footer {
+            text-align: center;
+            margin-top: 80px;
+            color: #7f8c8d;
+            font-size: 0.95rem;
+            padding: 20px 0;
+            border-top: 1px solid #e1e1e1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>线性代数互动演示库</h1>
+            <p class="intro">
+                这是一系列为帮助理解线性代数核心概念而设计的互动可视化课件。点击下方链接，探索每个概念的动态演示，让抽象的数学变得直观。
+            </p>
+        </header>
+
+        <div class="categories">
+            <div class="category">
+                <h2>1. 向量与基本运算</h2>
+                <ul class="doc-list">
+                    <li class="doc-item"><a href="vector.html" class="doc-link">向量的坐标表示</a></li>
+                    <li class="doc-item"><a href="vector-add.html" class="doc-link">向量加法</a></li>
+                    <li class="doc-item"><a href="vector-sub.html" class="doc-link">向量减法</a></li>
+                    <li class="doc-item"><a href="vector-mul.html" class="doc-link">向量数乘</a></li>
+                </ul>
+            </div>
+
+            <div class="category">
+                <h2>2. 线性方程组</h2>
+                <ul class="doc-list">
+                    <li class="doc-item"><a href="Axequalsb.html" class="doc-link">线性方程组 Ax = b 的几何意义</a></li>
+                    <li class="doc-item"><a href="rowred1.html" class="doc-link">通过行变换求解线性方程组</a></li>
+                    <li class="doc-item"><a href="rowred2.html" class="doc-link">行变换进阶示例</a></li>
+                    <li class="doc-item"><a href="rrinter.html" class="doc-link">交互式行变换演示</a></li>
+                </ul>
+            </div>
+
+            <div class="category">
+                <h2>3. 矩阵与线性变换</h2>
+                <ul class="doc-list">
+                    <li class="doc-item"><a href="compose2d.html" class="doc-link">二维线性变换的合成</a></li>
+                    <li class="doc-item"><a href="compose3d.html" class="doc-link">三维线性变换的合成</a></li>
+                    <li class="doc-item"><a href="twobytwo.html" class="doc-link">二阶矩阵的变换效果</a></li>
+                    <li class="doc-item"><a href="transform_game.html" class="doc-link">线性变换小游戏</a></li>
+                </ul>
+            </div>
+
+            <div class="category">
+                <h2>4. 子空间与维度</h2>
+                <ul class="doc-list">
+                    <li class="doc-item"><a href="spans.html" class="doc-link">向量张成的空间 (Span)</a></li>
+                    <li class="doc-item"><a href="point.html" class="doc-link">点与空间</a></li>
+                    <li class="doc-item"><a href="plane.html" class="doc-link">平面方程与表示</a></li>
+                    <li class="doc-item"><a href="planes.html" class="doc-link">多个平面的相交与关系</a></li>
+                </ul>
+            </div>
+
+            <div class="category">
+                <h2>5. 特征值与特征向量</h2>
+                <ul class="doc-list">
+                    <li class="doc-item"><a href="eigenspace.html" class="doc-link">特征空间与特征向量</a></li>
+                    <li class="doc-item"><a href="similarity.html" class="doc-link">相似矩阵</a></li>
+                </ul>
+            </div>
+
+            <div class="category">
+                <h2>6. 应用与进阶主题</h2>
+                <ul class="doc-list">
+                    <li class="doc-item"><a href="leastsquares.html" class="doc-link">最小二乘拟合</a></li>
+                    <li class="doc-item"><a href="bestfit.html" class="doc-link">最佳拟合线</a></li>
+                    <li class="doc-item"><a href="bestfit-implicit.html" class="doc-link">隐式曲线的最佳拟合</a></li>
+                    <li class="doc-item"><a href="color_mixing.html" class="doc-link">颜色混合的线性代数原理</a></li>
+                </ul>
+            </div>
+            
+            <div class="category">
+                <h2>7. 动态系统与仿真</h2>
+                <ul class="doc-list">
+                    <li class="doc-item"><a href="dynamics.html" class="doc-link">线性动态系统</a></li>
+                    <li class="doc-item"><a href="dynamics2.html" class="doc-link">二阶线性动态系统</a></li>
+                </ul>
+            </div>
+
+            <div class="category">
+                <h2>8. 趣味与教学工具</h2>
+                <ul class="doc-list">
+                    <li class="doc-item"><a href="cover.html" class="doc-link">封面演示</a></li>
+                    <li class="doc-item"><a href="steps.html" class="doc-link">分步演示工具</a></li>
+                    <li class="doc-item"><a href="parametric1.html" class="doc-link">参数方程绘图 (一)</a></li>
+                    <li class="doc-item"><a href="parametric2.html" class="doc-link">参数方程绘图 (二)</a></li>
+                    <li class="doc-item"><a href="projection.html" class="doc-link">向量投影互动演示</a></li>
+                    <li class="doc-item"><a href="quadratic_form.html" class="doc-link">二次型与椭球</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <footer>
+            <p>© 2025 线性代数可视化项目 | 教研室线性代数动画库</p>
+        </footer>
+    </div>
+</body>
+</html>

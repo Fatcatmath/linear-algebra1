@@ -275,7 +275,7 @@ window.demo = new (size === 2 ? Demo2D : Demo)({
         str += _this.texVector(vectorIn, {
           color: vecColor.str()
         });
-        popup.show("<h3><span class=\"vector\">x</span> is an eigenvector" + (" with eigenvalue <span class=\"espace-" + onSubspace + "\">") + (eigenval + "</span></h3>") + ("<p>" + evalStrings[onSubspace] + "</p>"));
+        popup.show("<h3><span class=\"vector\">x</span> 是一个特征向量" + (" with eigenvalue <span class=\"espace-" + onSubspace + "\">") + (eigenval + "</span></h3>") + ("<p>" + evalStrings[onSubspace] + "</p>"));
       } else {
         popup.hide();
       }

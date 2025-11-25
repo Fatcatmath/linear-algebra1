@@ -252,7 +252,7 @@ window.demo = new (size === 2 ? Demo2D : Demo)({
     } else if (this.urlParams.nomult != null) {
       str += ("<p>特征值 <span class=\"espace-" + j + "\">") + (eigenval + "的特征空间</span></p>");
     } else {
-      str += ("<p>特征值 <span class=\"espace-" + j + "\">") + (eigenval + "的特征空间</span> ") + ("代数重数 " + mult + " ") + ("并且, 几何重数 " + eigenspaces[j].dim) + "</p>";
+      str += ("<p>特征值 <span class=\"espace-" + j + "\">") + (eigenval + "的特征空间</span> ") + ("代数重数 " + mult + " ") + (", 并且几何重数 " + eigenspaces[j].dim) + "</p>";
     }
     evalStrings.push(katex.renderToString(("A\\color{" + (vecColor.str()) + "}{x} = \\color{" + (colors[j].str()) + "}{" + eigenval + "}") + ("\\color{" + (vecColor.darken(.1).str()) + "}{x}")));
   }

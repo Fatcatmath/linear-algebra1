@@ -1,227 +1,350 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="initial-scale=1, maximum-scale=1">
-  <title>二次型与3D几何形状联动动画 (原生Mathbox版)</title>
-  <!-- 引入必要的依赖 -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.137.0/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mathbox@2.3.1/build/mathbox-bundle.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/dat.gui@0.7.9/build/dat.gui.min.js"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-  
-  <style>
-    body { margin: 0; font-family: Arial, sans-serif; overflow: hidden; }
-    .caption {
-      position: absolute;
-      bottom: 20px;
-      left: 20px;
-      padding: 15px;
-      background: rgba(255, 255, 255, 0.9);
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      max-width: 60%;
-    }
-    #quadratic-formula { font-size: 1.1rem; color: #2c3e50; font-weight: 500; }
-    .param-hint { font-size: 0.9rem; color: #7f8c8d; margin-top: 5px; }
-    .positive-definite { color: #27ae60; font-weight: 600; }
-    .non-positive-definite { color: #e74c3c; font-weight: 600; }
-    .shape-label { font-size: 1rem; color: #34495e; text-align: center; margin: 10px 0; }
-  </style>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1">
+    <title>二次型与3D椭球联动 (特征值分解版)</title>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.137.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mathbox@2.3.1/build/mathbox-bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dat.gui@0.7.9/build/dat.gui.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <style>
+        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; overflow: hidden; background-color: #f0f0f0; }
+        .caption {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            max-width: 550px;
+            font-size: 14px;
+        }
+        .caption h4 { margin-top: 0; margin-bottom: 10px; color: #333; }
+        .caption p { margin: 5px 0; line-height: 1.4; color: #555; }
+        .formula { font-size: 1.2em; margin: 10px 0; color: #2c3e50; }
+        .param-hint { font-size: 0.9em; color: #7f8c8d; margin-top: 10px; }
+        .positive-definite { color: #27ae60; font-weight: 600; }
+        .non-positive-definite { color: #e74c3c; font-weight: 600; }
+        #shape-type { font-weight: 600; color: #34495e; }
+    </style>
 </head>
 <body>
-  <!-- Mathbox 容器 -->
-  <div id="mathbox-container"></div>
+    <div id="mathbox-container"></div>
+    <div class="caption">
+        <h4>二次型与3D椭球可视化</h4>
+        <p class="formula">二次型方程: \( \mathbf{x}^T Q \mathbf{x} = 1 \)</p>
+        <p>矩阵 \( Q \) 状态: <span id="pd-status" class="positive-definite">正定 (椭球)</span></p>
+        <p>当前形状: <span id="shape-type">椭球</span></p>
+        <p>特征值 (λ₁, λ₂, λ₃): <span id="eigenvalues">计算中...</span></p>
+        <p class="param-hint">拖动滑块修改矩阵 Q 的元素，观察椭球的形状、大小和主轴方向变化。</p>
+    </div>
 
-  <!-- 说明文字容器 -->
-  <div class="caption">
-    <p>二次型方程：<span id="quadratic-formula"></span></p>
-    <p>矩阵正定状态：<span id="pd-status" class="positive-definite">正定（形状：椭球）</span></p>
-    <p class="shape-label" id="shape-type">当前几何形状：椭球（正定矩阵）</p>
-    <p class="param-hint">调整参数：Q₁₁>0 且 Q₁₁Q₂₂-Q₁₂²>0 可保持椭球形状</p>
-  </div>
+    <script type="text/javascript">
+        "use strict";
 
-  <script type="text/javascript">
-    "use strict";
-
-    // ------------------------------
-    // 1. 初始化 Mathbox
-    // ------------------------------
-    var mathbox = mathBox({
-      plugins: ['core', 'controls', 'cursor'],
-      controls: { klass: THREE.OrbitControls }
-    });
-    
-    if (mathbox.api) {
-      var three = mathbox.three;
-      three.renderer.setClearColor(new THREE.Color(0xFFFFFF), 1.0); // 设置白色背景
-
-      // ------------------------------
-      // 2. 设置视图和坐标系
-      // ------------------------------
-      var view = mathbox
-        .cartesian({
-          range: [[-3, 3], [-3, 3], [-3, 3]],
-          scale: [1, 1, 1],
-        })
-        .axis({
-          axis: 1, // x-axis
-          color: 0xc0c0c0,
-          width: 2,
-        })
-        .axis({
-          axis: 2, // y-axis
-          color: 0xc0c0c0,
-          width: 2,
-        })
-        .axis({
-          axis: 3, // z-axis
-          color: 0xc0c0c0,
-          width: 2,
-        })
-        .grid({
-          axes: [1, 3],
-          color: 0xe0e0e0,
-          width: 1,
-          divideX: 6,
-          divideY: 6,
+        // 1. 初始化 Mathbox
+        var mathbox = mathBox({
+            plugins: ['core', 'controls', 'cursor'],
+            controls: { klass: THREE.OrbitControls, autoRotate: false },
+            container: document.getElementById('mathbox-container'),
+            width: window.innerWidth,
+            height: window.innerHeight,
         });
+        
+        if (mathbox.api) {
+            var three = mathbox.three;
+            three.renderer.setClearColor(new THREE.Color(0xf0f0f0), 1.0);
+            three.camera.position.set(3.5, 3.5, 3.5);
 
-      // ------------------------------
-      // 3. 数据与变量初始化
-      // ------------------------------
-      var quadraticMatrix = [[2.0, 0.5, 0], [0.5, 1.0, 0], [0, 0, 1.0]];
-      var sphereResolution = 32;
-      var initialSpherePoints = createSphereData(sphereResolution);
-      var ellipsoid;
+            // 2. 设置视图和坐标系
+            var view = mathbox
+                .cartesian({
+                    range: [[-4, 4], [-4, 4], [-4, 4]],
+                    scale: [1, 1, 1],
+                })
+                .axis({ axis: 1, color: 0x999999, width: 2, ticks: true })
+                .axis({ axis: 2, color: 0x999999, width: 2, ticks: true })
+                .axis({ axis: 3, color: 0x999999, width: 2, ticks: true })
+                .grid({ axes: [1, 2], color: 0xdddddd, width: 1 })
+                .grid({ axes: [1, 3], color: 0xdddddd, width: 1 })
+                .grid({ axes: [2, 3], color: 0xdddddd, width: 1 });
 
-      // ------------------------------
-      // 4. 创建几何形状
-      // ------------------------------
-      ellipsoid = view.array({
-        data: initialSpherePoints,
-        channels: 3, // xyz
-        items: 1,
-      }).mesh({
-        shaded: true,
-        line: false,
-        color: 0xff8800, // Orange
-        width: 0.02,
-      });
+            // 3. 数据与变量初始化
+            var quadraticMatrix = [[2.0, 0.5, 0.3], [0.5, 1.0, -0.2], [0.3, -0.2, 0.8]];
+            var sphereResolution = 32;
+            
+            // 创建原始单位球面（透明灰色）
+            var initialSpherePoints = createSphereData(sphereResolution);
+            view.array({ data: initialSpherePoints, channels: 3 })
+               .mesh({ shaded: true, line: false, color: 0xaaaaaa, opacity: 0.3 });
 
-      // ------------------------------
-      // 5. 创建 dat.GUI 控制器
-      // ------------------------------
-      var guiParams = {
-        Q11: quadraticMatrix[0][0],
-        Q12: quadraticMatrix[0][1],
-        Q22: quadraticMatrix[1][1],
-        resolution: sphereResolution,
-        reset: function() {
-          this.Q11 = 2.0;
-          this.Q12 = 0.5;
-          this.Q22 = 1.0;
-          updateAll();
-          // 更新GUI显示
-          for (var i in gui.__controllers) {
-            gui.__controllers[i].updateDisplay();
-          }
-        }
-      };
+            // 创建变换后的椭球面（橙色）
+            var ellipsoidPoints = transformPoints(initialSpherePoints, quadraticMatrix);
+            var ellipsoid = view.array({ data: ellipsoidPoints, channels: 3 })
+                                 .mesh({ shaded: true, line: false, color: 0xff7700, opacity: 0.8 });
 
-      var gui = new dat.GUI({ width: 300 });
-      gui.add(guiParams, 'Q11', 0.2, 4.0).step(0.1).name('Q₁₁').onChange(updateAll);
-      gui.add(guiParams, 'Q12', -0.7, 0.7).step(0.1).name('Q₁₂').onChange(updateAll);
-      gui.add(guiParams, 'Q22', 0.2, 4.0).step(0.1).name('Q₂₂').onChange(updateAll);
-      gui.add(guiParams, 'reset').name('重置');
+            // 创建主轴箭头（初始为x,y,z轴）
+            var axesData = [
+                0,0,0, 1,0,0, // X轴
+                0,0,0, 0,1,0, // Y轴
+                0,0,0, 0,0,1  // Z轴
+            ];
+            var eigenAxes = view.array({ data: axesData, channels: 6 }) // 6 channels for start and end points of lines
+                                .line({ color: 0x000000, width: 3 });
+            
+            // 4. 创建 dat.GUI 控制器
+            var guiParams = {
+                Q11: quadraticMatrix[0][0],
+                Q12: quadraticMatrix[0][1],
+                Q13: quadraticMatrix[0][2],
+                Q22: quadraticMatrix[1][1],
+                Q23: quadraticMatrix[1][2],
+                Q33: quadraticMatrix[2][2],
+                reset: function() {
+                    this.Q11 = 2.0; this.Q12 = 0.5; this.Q13 = 0.3;
+                    this.Q22 = 1.0; this.Q23 = -0.2;
+                    this.Q33 = 0.8;
+                    updateAll();
+                    gui.updateDisplay(); // This is cleaner
+                }
+            };
 
-      // ------------------------------
-      // 6. 核心更新函数
-      // ------------------------------
-      function updateAll() {
-        quadraticMatrix[0][0] = guiParams.Q11;
-        quadraticMatrix[0][1] = guiParams.Q12;
-        quadraticMatrix[1][0] = guiParams.Q12;
-        quadraticMatrix[1][1] = guiParams.Q22;
+            var gui = new dat.GUI({ width: 300, autoPlace: false });
+            document.body.appendChild(gui.domElement);
+            gui.domElement.style.position = 'absolute';
+            gui.domElement.style.top = '20px';
+            gui.domElement.style.right = '20px';
 
-        var isPD = isPositiveDefinite(quadraticMatrix);
-        updateStatus(isPD);
-        updateShape(isPD);
-        renderFormula();
-      }
+            gui.add(guiParams, 'Q11', 0.1, 5.0).step(0.1).name('Q₁₁').onChange(updateAll);
+            gui.add(guiParams, 'Q12', -1.5, 1.5).step(0.1).name('Q₁₂').onChange(updateAll);
+            gui.add(guiParams, 'Q13', -1.5, 1.5).step(0.1).name('Q₁₃').onChange(updateAll);
+            gui.add(guiParams, 'Q22', 0.1, 5.0).step(0.1).name('Q₂₂').onChange(updateAll);
+            gui.add(guiParams, 'Q23', -1.5, 1.5).step(0.1).name('Q₂₃').onChange(updateAll);
+            gui.add(guiParams, 'Q33', 0.1, 5.0).step(0.1).name('Q₃₃').onChange(updateAll);
+            gui.add(guiParams, 'reset').name('重置参数');
 
-      function updateShape(isPD) {
-        var L = isPD ? choleskyDecomposition(quadraticMatrix) : [[1,0,0],[0,1,0],[0,0,1]];
-        var invL = inverseLowerTriangular(L);
-        var newPoints = [];
+            // 5. 核心更新函数
+            function updateAll() {
+                // 更新矩阵 Q (确保其为对称矩阵)
+                quadraticMatrix[0][0] = guiParams.Q11;
+                quadraticMatrix[0][1] = guiParams.Q12; quadraticMatrix[1][0] = guiParams.Q12;
+                quadraticMatrix[0][2] = guiParams.Q13; quadraticMatrix[2][0] = guiParams.Q13;
+                quadraticMatrix[1][1] = guiParams.Q22;
+                quadraticMatrix[1][2] = guiParams.Q23; quadraticMatrix[2][1] = guiParams.Q23;
+                quadraticMatrix[2][2] = guiParams.Q33;
 
-        for (var i = 0; i < initialSpherePoints.length; i++) {
-          var p = initialSpherePoints[i];
-          var x = p[0] * invL[0][0] + p[1] * invL[0][1] + p[2] * invL[0][2];
-          var y = p[0] * invL[1][0] + p[1] * invL[1][1] + p[2] * invL[1][2];
-          var z = p[0] * invL[2][0] + p[1] * invL[2][1] + p[2] * invL[2][2];
-          newPoints.push(x, y, z);
-        }
-        ellipsoid.set('data', newPoints);
-      }
-      
-      function updateStatus(isPD) {
-        var statusEl = document.getElementById('pd-status');
-        var typeEl = document.getElementById('shape-type');
-        if (isPD) {
-          statusEl.className = "positive-definite";
-          statusEl.textContent = "正定（形状：椭球）";
-          typeEl.textContent = "当前几何形状：椭球（正定矩阵）";
+                // 更新椭球形状
+                var newEllipsoidPoints = transformPoints(initialSpherePoints, quadraticMatrix);
+                ellipsoid.set('data', newEllipsoidPoints);
+
+                // 更新状态信息和公式
+                updateStatusAndInfo();
+            }
+            
+            // 根据矩阵 Q 变换单位球面上的点，得到椭球面点
+            function transformPoints(spherePoints, Q) {
+                var transformedPoints = [];
+                
+                // 对 Q 进行特征值分解
+                var eigenResult = eigenDecomposition(Q);
+                var eigenvalues = eigenResult.values;
+                var eigenvectors = eigenResult.vectors; // 列向量是特征向量
+
+                // 检查是否为正定矩阵
+                var isPD = eigenvalues.every(lambda => lambda > 1e-6); // 考虑数值误差
+
+                if (isPD) {
+                    // 对于正定矩阵，使用特征值分解结果进行变换
+                    var P = eigenvectors;
+                    var D_inv_sqrt = eigenvalues.map(lambda => 1 / Math.sqrt(lambda));
+
+                    for (var i = 0; i < spherePoints.length; i++) {
+                        var p = spherePoints[i];
+
+                        // 方法：v = P * D^{-1/2} * p
+                        var scaled_p = [p[0] * D_inv_sqrt[0], p[1] * D_inv_sqrt[1], p[2] * D_inv_sqrt[2]];
+                        
+                        var x = P[0][0] * scaled_p[0] + P[0][1] * scaled_p[1] + P[0][2] * scaled_p[2];
+                        var y = P[1][0] * scaled_p[0] + P[1][1] * scaled_p[1] + P[1][2] * scaled_p[2];
+                        var z = P[2][0] * scaled_p[0] + P[2][1] * scaled_p[1] + P[2][2] * scaled_p[2];
+                        
+                        transformedPoints.push(x, y, z);
+                    }
+                } else {
+                    // 对于非正定矩阵，使用一种通用方法（可能不是椭球）
+                    // 这里我们用一个简单的缩放来示意，你可以根据需要修改
+                    var scale = 2.0 / Math.max(...eigenvalues.map(Math.abs));
+                    for (var i = 0; i < spherePoints.length; i++) {
+                        var p = spherePoints[i];
+                        transformedPoints.push(p[0] * scale, p[1] * scale, p[2] * scale);
+                    }
+                }
+                
+                return transformedPoints;
+            }
+            
+            function updateStatusAndInfo() {
+                var eigenResult = eigenDecomposition(quadraticMatrix);
+                var eigenvalues = eigenResult.values;
+                var eigenvectors = eigenResult.vectors;
+
+                var isPD = eigenvalues.every(lambda => lambda > 1e-6);
+
+                // 更新主轴
+                if (isPD) {
+                    var axesData = [];
+                    for (var i = 0; i < 3; i++) {
+                        var v = eigenvectors[i]; // 第i个特征向量（列向量）
+                        var len = 1 / Math.sqrt(eigenvalues[i]); // 主轴长度
+                        // 箭头从原点指向特征向量方向，长度为半长轴长度
+                        axesData.push(0, 0, 0, v[0] * len, v[1] * len, v[2] * len);
+                    }
+                    eigenAxes.set('data', axesData);
+                } else {
+                    // 非正定矩阵时，隐藏主轴
+                    eigenAxes.set('data', []);
+                }
+
+                // 更新状态文本
+                document.getElementById('pd-status').className = isPD ? "positive-definite" : "non-positive-definite";
+                document.getElementById('pd-status').textContent = isPD ? "正定 (椭球)" : "非正定 (形状不确定)";
+                document.getElementById('shape-type').textContent = isPD ? "椭球" : "不规则曲面";
+                
+                // 更新特征值显示
+                var eigenText = eigenvalues.map(lambda => lambda.toFixed(2)).join(', ');
+                document.getElementById('eigenvalues').textContent = eigenText;
+
+                // 更新LaTeX公式
+                renderFormula();
+            }
+
+            function renderFormula() {
+                var Q = quadraticMatrix;
+                var tex = `
+                    Q = \\begin{pmatrix}
+                    ${Q[0][0].toFixed(1)} & ${Q[0][1].toFixed(1)} & ${Q[0][2].toFixed(1)} \\\\
+                    ${Q[1][0].toFixed(1)} & ${Q[1][1].toFixed(1)} & ${Q[1][2].toFixed(1)} \\\\
+                    ${Q[2][0].toFixed(1)} & ${Q[2][1].toFixed(1)} & ${Q[2][2].toFixed(1)}
+                    \\end{pmatrix}
+                `;
+                // 在caption中添加矩阵显示
+                var formulaContainer = document.querySelector('.formula');
+                if (!formulaContainer.querySelector('#matrix-q')) {
+                    var matrixDiv = document.createElement('div');
+                    matrixDiv.id = 'matrix-q';
+                    matrixDiv.style.marginTop = '10px';
+                    formulaContainer.appendChild(matrixDiv);
+                }
+                katex.render(tex, document.getElementById('matrix-q'), { displayMode: true, throwOnError: false });
+            }
+
+            // 6. 辅助数学函数
+            function createSphereData(resolution) {
+                var vertices = [];
+                for (var i = 0; i <= resolution; i++) {
+                    var lat = Math.PI * i / resolution;
+                    var sinLat = Math.sin(lat);
+                    var cosLat = Math.cos(lat);
+                    for (var j = 0; j <= resolution; j++) {
+                        var lon = 2 * Math.PI * j / resolution;
+                        vertices.push([
+                            Math.cos(lon) * sinLat,
+                            Math.sin(lon) * sinLat,
+                            cosLat
+                        ]);
+                    }
+                }
+                return vertices;
+            }
+            
+            // 简单的特征值分解函数（使用Jacobi迭代法的简化版本）
+            // 注意：这是一个教学用的简化实现，对于非对称矩阵或退化矩阵可能不精确
+            function eigenDecomposition(A) {
+                // 确保输入是对称矩阵
+                var M = JSON.parse(JSON.stringify(A)); // 深拷贝
+                for (var i = 0; i < 3; i++) {
+                    for (var j = i + 1; j < 3; j++) {
+                        M[j][i] = M[i][j];
+                    }
+                }
+
+                var V = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]; // 特征向量矩阵
+                var epsilon = 1e-9;
+                var maxIterations = 100;
+
+                for (var iter = 0; iter < maxIterations; iter++) {
+                    // 找到非对角元素中的最大值
+                    var maxVal = 0;
+                    var p, q;
+                    for (var i = 0; i < 3; i++) {
+                        for (var j = i + 1; j < 3; j++) {
+                            if (Math.abs(M[i][j]) > maxVal) {
+                                maxVal = Math.abs(M[i][j]);
+                                p = i;
+                                q = j;
+                            }
+                        }
+                    }
+
+                    if (maxVal < epsilon) break;
+
+                    // 计算旋转角度
+                    var theta = 0.5 * Math.atan2(2 * M[p][q], M[q][q] - M[p][p]);
+                    var c = Math.cos(theta);
+                    var s = Math.sin(theta);
+
+                    // 执行旋转
+                    for (var i = 0; i < 3; i++) {
+                        var a = M[i][p];
+                        var b = M[i][q];
+                        M[i][p] = a * c - b * s;
+                        M[i][q] = a * s + b * c;
+                        a = M[p][i];
+                        b = M[q][i];
+                        M[p][i] = a * c - b * s;
+                        M[q][i] = a * s + b * c;
+                        
+                        // 更新特征向量矩阵
+                        a = V[i][p];
+                        b = V[i][q];
+                        V[i][p] = a * c - b * s;
+                        V[i][q] = a * s + b * c;
+                    }
+                }
+
+                // 提取特征值（对角线元素）和特征向量（列向量）
+                var eigenvalues = [M[0][0], M[1][1], M[2][2]];
+                
+                // 对特征值和特征向量进行排序（从大到小）
+                var indices = [0, 1, 2];
+                indices.sort((i, j) => eigenvalues[j] - eigenvalues[i]);
+                
+                var sortedEigenvalues = indices.map(i => eigenvalues[i]);
+                var sortedEigenvectors = [[], [], []];
+                for (var i = 0; i < 3; i++) {
+                    for (var j = 0; j < 3; j++) {
+                        sortedEigenvectors[j][i] = V[j][indices[i]];
+                    }
+                }
+
+                return { values: sortedEigenvalues, vectors: sortedEigenvectors };
+            }
+
+            // 7. 初始渲染
+            updateAll();
+            updateStatusAndInfo(); // 确保所有信息都正确显示
+
+            // 窗口大小调整
+            window.addEventListener('resize', function() {
+                mathbox.resize(window.innerWidth, window.innerHeight);
+            });
+
         } else {
-          statusEl.className = "non-positive-definite";
-          statusEl.textContent = "非正定（形状：双曲面/退化）";
-          typeEl.textContent = "当前几何形状：双曲面（非正定矩阵）";
+            document.body.innerHTML = '<div style="color:red; padding:20px; font-family: sans-serif;">Mathbox 初始化失败。请检查您的浏览器和网络连接。</div>';
         }
-      }
-
-      function renderFormula() {
-        var q11 = quadraticMatrix[0][0].toFixed(1);
-        var q12 = quadraticMatrix[0][1].toFixed(1);
-        var q22 = quadraticMatrix[1][1].toFixed(1);
-        var crossTerm = (2 * parseFloat(q12)).toFixed(1);
-        var tex = `\\mathbf{x}^T Q \\mathbf{x} = ${q11}x^2 + ${crossTerm}xy + ${q22}y^2 + z^2 = 1`;
-        katex.render(tex, document.getElementById('quadratic-formula'), { throwOnError: false });
-      }
-
-      // ------------------------------
-      // 7. 辅助数学函数 (与之前相同)
-      // ------------------------------
-      function createSphereData(resolution) {
-        var vertices = [];
-        for (var i = 0; i <= resolution; i++) {
-          var lat = Math.PI * i / resolution;
-          var sinLat = Math.sin(lat);
-          var cosLat = Math.cos(lat);
-          for (var j = 0; j <= resolution; j++) {
-            var lon = 2 * Math.PI * j / resolution;
-            vertices.push([
-              Math.cos(lon) * sinLat,
-              Math.sin(lon) * sinLat,
-              cosLat
-            ]);
-          }
-        }
-        return vertices;
-      }
-      function choleskyDecomposition(A) { /* ... 与之前相同 ... */ }
-      function inverseLowerTriangular(L) { /* ... 与之前相同 ... */ }
-      function isPositiveDefinite(A) { /* ... 与之前相同 ... */ }
-
-      // ------------------------------
-      // 8. 初始渲染
-      // ------------------------------
-      updateAll();
-
-    } else {
-      // Mathbox 初始化失败
-      document.body.innerHTML = '<div style="color:red; padding:20px;">Mathbox 初始化失败。请检查控制台获取更多信息。</div>';
-    }
-  </script>
+    </script>
 </body>
 </html>

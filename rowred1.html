@@ -1,9 +1,9 @@
 <!DOCTYPE html> <!-- -*- html -*- -->
 <html>
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8">  
   <meta name="viewport" content="initial-scale=1, maximum-scale=1">
-  <title>"Solving" a matrix</title>
+  <title>利用初等行变换解线性方程组</title>
   <link rel="shortcut icon" href="img/gatech.gif"/>
 
   
@@ -66,7 +66,7 @@
         </div>
         <div class="my-turn">
             <button class="slideshow-button">
-                Let me take it from here.
+               我们从这开始
             </button>
         </div>
     </div>
@@ -174,15 +174,15 @@ rrmat.setMatrix([[1, 2, 3, 6], [2, -3, 2, 14], [3, 1, -1, -2]]);
 
 augment = 2;
 
-window.slideshow = rrmat.slideshow().caption("We want these two entries to be zero.").setStyle(blink("red", [[1, 0], [2, 0]]))["break"]().caption("So we subtract multiples of the first row.").rowRep(0, -2, 1).rowRep(0, -3, 2).setStyle({
+window.slideshow = rrmat.slideshow().caption("想让这两行为0.").setStyle(blink("red", [[1, 0], [2, 0]]))["break"]().caption("因此我们减去第一行的若干倍").rowRep(0, -2, 1).rowRep(0, -3, 2).setStyle({
   color: "black",
   entries: [[1, 0], [2, 0]],
   duration: 0.2
-})["break"]().caption("Now we want these to be zero.").setStyle(blink("red", [[0, 1], [2, 1]]))["break"]().caption("It would be nice if this were a 1.").setStyle(blink("blue", [[1, 1]]))["break"]().caption("We could divide the second row by by -7").setStyle(blink("blue", [[1, 0], [1, 1], [1, 2], [1, 3]])).caption("We could divide the second row by by -7" + " ... but then we would end up with ugly fractions.").setStyle({
+})["break"]().caption("下面想把下述置换为0.").setStyle(blink("red", [[0, 1], [2, 1]]))["break"]().caption("如果该元素为1那就太好了.").setStyle(blink("blue", [[1, 1]]))["break"]().caption("我们就可以把第二行除以-7").setStyle(blink("blue", [[1, 0], [1, 1], [1, 2], [1, 3]])).caption("第二行除以 -7" + " 但是分式不是期望的.").setStyle({
   color: "black",
   entries: [[1, 0], [1, 1], [1, 2], [1, 3]],
   duration: 0.2
-})["break"]().caption("Let's swap the last two rows first.").rowSwap(1, 2).setStyle([
+})["break"]().caption("我们先把两行交换").rowSwap(1, 2).setStyle([
   {
     color: "black",
     entries: [[1, 1]],
@@ -193,15 +193,15 @@ window.slideshow = rrmat.slideshow().caption("We want these two entries to be ze
     duration: 1,
     delay: 0.1
   }
-])["break"]().caption("Now we divide the middle row by -5, without producing fractions.").rowMult(1, -1 / 5)["break"]().caption("We kill the red entries using row replacement, like before.").rowRep(1, -2, 0).rowRep(1, 7, 2).setStyle({
+])["break"]().caption("中间这一行除以-5就不会产生新的分式了.").rowMult(1, -1 / 5)["break"]().caption("我们像以前一样用行变换消掉红色的颜色.").rowRep(1, -2, 0).rowRep(1, 7, 2).setStyle({
   color: "black",
   entries: [[0, 1], [2, 1]],
   duration: 0.2
-})["break"]().caption("Next we want to get rid of these entries.").setStyle(blink("red", [[0, 2], [1, 2]]))["break"]().caption("To make this entry a 1...").setStyle(blink("black", [[2, 2]])).caption("To make this entry a 1, we divide the third row by 10").rowMult(2, 1 / 10)["break"]().caption("We kill the red entries using row replacement, like before.").rowRep(2, -2, 1).rowRep(2, 1, 0).setStyle({
+})["break"]().caption("现在我们想消掉剩下的元素.").setStyle(blink("red", [[0, 2], [1, 2]]))["break"]().caption("为了把这个元素变为1").setStyle(blink("black", [[2, 2]])).caption("为了把这个元素变为1, 我们把第三行为10").rowMult(2, 1 / 10)["break"]().caption("用行变换削去红的元素, 如同一样").rowRep(2, -2, 1).rowRep(2, 1, 0).setStyle({
   color: "black",
   entries: [[0, 2], [1, 2]],
   duration: 0.2
-}).caption("And we're done!").setStyle({
+}).caption("然后就得到正确答案了").setStyle({
   transform: "rotate(360deg)",
   entries: [[0, 0], [0, 1], [0, 2], [0, 3], [1, 0], [1, 1], [1, 2], [1, 3], [2, 0], [2, 1], [2, 2], [2, 3]],
   duration: 1.5,

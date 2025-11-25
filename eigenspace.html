@@ -250,9 +250,9 @@ window.demo = new (size === 2 ? Demo2D : Demo)({
     if (this.urlParams.nospace != null) {
       str += '';
     } else if (this.urlParams.nomult != null) {
-      str += ("<p>This is the <span class=\"espace-" + j + "\">") + (eigenval + "-eigenspace</span></p>");
+      str += ("<p>特征值 <span class=\"espace-" + j + "\">") + (eigenval + "的特征空间</span></p>");
     } else {
-      str += ("<p>The <span class=\"espace-" + j + "\">") + (eigenval + "-eigenspace</span> ") + ("代数重数 " + mult + " ") + ("and geometric multiplicity " + eigenspaces[j].dim) + "</p>";
+      str += ("<p>特征值 <span class=\"espace-" + j + "\">") + (eigenval + "的特征空间</span> ") + ("代数重数 " + mult + " ") + ("并且, 几何重数 " + eigenspaces[j].dim) + "</p>";
     }
     evalStrings.push(katex.renderToString(("A\\color{" + (vecColor.str()) + "}{x} = \\color{" + (colors[j].str()) + "}{" + eigenval + "}") + ("\\color{" + (vecColor.darken(.1).str()) + "}{x}")));
   }
@@ -275,7 +275,7 @@ window.demo = new (size === 2 ? Demo2D : Demo)({
         str += _this.texVector(vectorIn, {
           color: vecColor.str()
         });
-        popup.show("<h3><span class=\"vector\">x</span> 是一个特征向量" + (" with eigenvalue <span class=\"espace-" + onSubspace + "\">") + (eigenval + "</span></h3>") + ("<p>" + evalStrings[onSubspace] + "</p>"));
+        popup.show("<h3><span class=\"vector\">x</span> 是一个特征向量" + (" 特征值 <span class=\"espace-" + onSubspace + "\">") + (eigenval + "</span></h3>") + ("<p>" + evalStrings[onSubspace] + "</p>"));
       } else {
         popup.hide();
       }

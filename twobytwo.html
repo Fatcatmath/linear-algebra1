@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="initial-scale=1, maximum-scale=1">
-  <title>2x2 Matrix Transformations</title>
+  <title>2x2 矩阵变换</title>
   <link rel="shortcut icon" href="img/gatech.gif"/>
 
   
@@ -155,11 +155,11 @@ window.demo = new Demo2D({
     if (i === 0) {
       folder.open();
     }
-    folder.add(params, 'xscale', -2, 2).step(0.05).onChange(params.doScale).listen();
-    folder.add(params, 'yscale', -2, 2).step(0.05).onChange(params.doScale).listen();
-    folder.add(params, 'rotate', -π, π).step(0.1 * π).onChange(params.doRotate).listen();
-    folder.add(params, 'xshear', -2, 2).step(0.05).onChange(params.doXShear).listen();
-    folder.add(params, 'yshear', -2, 2).step(0.05).onChange(params.doYShear).listen();
+    folder.add(params, 'x轴放缩', -2, 2).step(0.05).onChange(params.doScale).listen();
+    folder.add(params, 'y轴放缩', -2, 2).step(0.05).onChange(params.doScale).listen();
+    folder.add(params, '旋转', -π, π).step(0.1 * π).onChange(params.doRotate).listen();
+    folder.add(params, 'x轴剪切', -2, 2).step(0.05).onChange(params.doXShear).listen();
+    folder.add(params, 'y轴剪切', -2, 2).step(0.05).onChange(params.doYShear).listen();
     paramses.push(params);
   }
   gridOpts = {
@@ -301,7 +301,7 @@ window.demo = new Demo2D({
     postDrag: updateCaption,
     hiliteOpts: hiliteOpts
   });
-  this.caption('<p><span id="eqn-here"></span></p>\n<p id="help-text">[Click and drag the vector heads]</p>');
+  this.caption('<p><span id="eqn-here"></span></p>\n<p id="help-text">[点击和拖拽向量的剪头]</p>');
   eqnElt = document.getElementById('eqn-here');
   return computeMatrix(true);
 });

@@ -106,6 +106,18 @@
             background: var(--darker);
         }
         
+        .vector-label {
+            position: absolute;
+            color: white;
+            font-weight: bold;
+            background: rgba(0,0,0,0.7);
+            padding: 4px 8px;
+            border-radius: 4px;
+            pointer-events: none;
+            font-size: 14px;
+            z-index: 10;
+        }
+        
         .info-panel {
             background: var(--dark);
             border-radius: 12px;
@@ -402,6 +414,7 @@
                     <div class="canvas-coords" id="source-coords">x: 2.00, y: 1.00</div>
                 </div>
                 <canvas id="source-canvas"></canvas>
+                <div class="vector-label" id="source-vector-label">输入向量 x</div>
             </div>
             
             <div class="canvas-container">
@@ -410,6 +423,7 @@
                     <div class="canvas-coords" id="target-coords">x: 2.00, y: 1.00</div>
                 </div>
                 <canvas id="target-canvas"></canvas>
+                <div class="vector-label" id="target-vector-label">输出向量 b</div>
             </div>
         </div>
         
@@ -584,7 +598,7 @@
         }
 
         // 绘制向量
-        function drawVector(ctx, vec, color, isSource) {
+        function drawVector(ctx, vec, color, labelEl) {
             const canvasX = CONFIG.origin.x + vec[0] * CONFIG.vectorScale;
             const canvasY = CONFIG.origin.y - vec[1] * CONFIG.vectorScale;
 
@@ -612,11 +626,22 @@
             );
             ctx.fill();
 
+            // 更新标签位置
+            if (labelEl) {
+                const labelX = canvasX + 15 * Math.cos(angle);
+                const labelY = canvasY - 15 * Math.sin(angle);
+                labelEl.style.left = `${labelX}px`;
+                labelEl.style.top = `${labelY}px`;
+            }
+
             // 更新坐标显示
+            const isSource = labelEl && labelEl.id === 'source-vector-label';
             const coordsEl = isSource ? 
                 document.getElementById('source-coords') : 
                 document.getElementById('target-coords');
-            coordsEl.textContent = `x: ${vec[0].toFixed(2)}, y: ${vec[1].toFixed(2)}`;
+            if (coordsEl) {
+                coordsEl.textContent = `x: ${vec[0].toFixed(2)}, y: ${vec[1].toFixed(2)}`;
+            }
 
             return { x: canvasX, y: canvasY };
         }
@@ -624,11 +649,13 @@
         // 刷新画布
         function refreshCanvases() {
             drawGrid(sourceCtx);
-            drawVector(sourceCtx, state.inVec, '#2ecc71', true);
+            const sourceLabel = document.getElementById('source-vector-label');
+            drawVector(sourceCtx, state.inVec, '#2ecc71', sourceLabel);
 
             drawGrid(targetCtx);
             const targetColor = state.isInvertible ? '#e74c3c' : '#95a5a6';
-            drawVector(targetCtx, state.outVec, targetColor, false);
+            const targetLabel = document.getElementById('target-vector-label');
+            drawVector(targetCtx, state.outVec, targetColor, targetLabel);
         }
 
         // 矩阵乘法
@@ -875,15 +902,15 @@
 
         // 绑定拖拽事件
         function bindDragEvents() {
-            const sourceContainer = document.getElementById('source-canvas-container');
-            const targetContainer = document.getElementById('target-canvas-container');
+            const sourceContainer = document.querySelector('.canvas-container:first-child');
+            const targetContainer = document.querySelector('.canvas-container:last-child');
 
             sourceContainer.addEventListener('mousedown', (e) => {
                 const rect = sourceCanvas.getBoundingClientRect();
                 const canvasX = e.clientX - rect.left;
                 const canvasY = e.clientY - rect.top;
 
-                const vecEnd = drawVector(sourceCtx, state.inVec, '#2ecc71', true);
+                const vecEnd = drawVector(sourceCtx, state.inVec, '#2ecc71', document.getElementById('source-vector-label'));
                 if (Math.hypot(canvasX - vecEnd.x, canvasY - vecEnd.y) < 20) {
                     state.dragging = 'source';
                     state.dragStart.x = canvasX;
@@ -898,7 +925,7 @@
                 const canvasX = e.clientX - rect.left;
                 const canvasY = e.clientY - rect.top;
 
-                const vecEnd = drawVector(targetCtx, state.outVec, '#e74c3c', false);
+                const vecEnd = drawVector(targetCtx, state.outVec, '#e74c3c', document.getElementById('target-vector-label'));
                 if (Math.hypot(canvasX - vecEnd.x, canvasY - vecEnd.y) < 20) {
                     state.dragging = 'target';
                     state.dragStart.x = canvasX;

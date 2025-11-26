@@ -1,375 +1,509 @@
-<!DOCTYPE html> <!-- -*- html -*- -->
+<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="initial-scale=1, maximum-scale=1">
-  <title>2x2矩阵变换演示（优化版）</title> <!-- 1. 修改标题 -->
-  <link rel="shortcut icon" href="img/gatech.gif"/>
-  <link rel="stylesheet" href="css/demo.css?vers=2759ff">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2x2矩阵变换演示（独立可运行版）</title>
   <style>
-    #help-text {
-      text-align: center;
-      color: #666;
-      margin: 10px 0;
-      font-size: 14px;
-    }
-    #det-text {
-      text-align: center;
-      color: #3366cc;
-      font-weight: bold;
-      margin: 5px 0;
-    }
-    .caption {
-      margin: 20px auto;
-      max-width: 800px;
-    }
-    /* 3. 优化公式显示样式 */
-    #eqn-here {
-      font-size: 18px;
-      display: inline-block;
-      padding: 10px 20px;
-      background: #f5fafe;
-      border-radius: 8px;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #1a1a1a; color: white; padding: 20px; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 { text-align: center; margin-bottom: 20px; color: #3498db; }
+    .demo-area { display: flex; gap: 40px; justify-content: center; margin: 30px 0; }
+    .canvas-container { width: 400px; height: 400px; border: 2px solid #3498db; background: #2c3e50; position: relative; }
+    canvas { width: 100%; height: 100%; }
+    .vector-label { position: absolute; color: white; font-weight: bold; background: rgba(0,0,0,0.7); padding: 2px 6px; border-radius: 3px; pointer-events: none; }
+    .info-area { text-align: center; margin: 20px 0; }
+    #matrix-eqn { font-size: 20px; margin-bottom: 10px; color: #ecf0f1; }
+    #det-info { color: #2ecc71; font-size: 16px; margin-bottom: 10px; }
+    #help-text { color: #95a5a6; font-size: 14px; }
+    .gui-container { position: fixed; top: 20px; right: 20px; background: #34495e; padding: 15px; border-radius: 8px; max-width: 250px; }
+    .gui-folder { margin-bottom: 15px; border-bottom: 1px solid #4a6584; padding-bottom: 10px; }
+    .gui-folder h3 { margin-bottom: 8px; color: #3498db; font-size: 16px; }
+    .gui-control { margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .gui-control label { font-size: 14px; flex: 1; }
+    .gui-control input { flex: 2; padding: 4px; border: none; border-radius: 3px; }
+    button { background: #3498db; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-top: 10px; }
+    button:hover { background: #2980b9; }
   </style>
 </head>
 <body>
-  <script src="js/demo.js?vers=77646a"></script>
-  <script type="text/javascript">
-    "use strict";
-    DomReady.ready(function() {
-      var color1, color2, ortho, ref,
-        bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+  <div class="container">
+    <h1>2x2矩阵变换交互式演示</h1>
 
-      ortho = 10000;
-      color1 = new Color("#2ecc71"); // 1. 调整输入向量颜色（清新绿）
-      color2 = new Color("#e74c3c"); // 调整输出向量颜色（醒目红）
+    <div class="demo-area">
+      <!-- 左侧原始视图 -->
+      <div class="canvas-container" id="source-canvas-container">
+        <canvas id="source-canvas"></canvas>
+        <div class="vector-label" id="source-vector-label">输入向量 x</div>
+      </div>
 
-      window.demo = new Demo2D({
-        preload: {
-          // 2. 更换背景图（支持本地图片或网络图片）
-          image: 'img/' + ((ref = urlParams.pic) != null ? ref : "lena.jpg") 
-          // 若要使用网络图片：image: "https://picsum.photos/800/800"
-        },
-        ortho: ortho,
-        camera: {
-          position: [1.1, 0, ortho],
-          lookAt: [1.1, 0, 0]
-        },
-        vertical: 2.2
-      }, function() {
-        var Params, axisOpts, clipCube, computeIn, computeMatrix, computeOut, drag2, 
-            eqnElt, detElt, folder, gridOpts, gui, hiliteOpts, i, inVec, inverse, j, 
-            labelOpts, matrix, numTransforms, outVec, params, paramses, ref1, 
-            updateCaption, updateDeterminant, vectorOpts, view1, view2, zeroOpts;
-        
-        window.mathbox = this.mathbox;
-        matrix = this.urlParams.get('mat', 'float[]', [1, 0, 0, 1]);
-        numTransforms = this.urlParams.get('num', 'int', 4); // 4. 增加变换步骤到4个
-        inverse = null;
+      <!-- 右侧变换后视图 -->
+      <div class="canvas-container" id="target-canvas-container">
+        <canvas id="target-canvas"></canvas>
+        <div class="vector-label" id="target-vector-label">输出向量 b</div>
+      </div>
+    </div>
 
-        // 5. 新增：显示矩阵行列式
-        updateDeterminant = function() {
-          var det = matrix[0] * matrix[3] - matrix[1] * matrix[2];
-          det = det.toFixed(3); // 保留3位小数
-          detElt.innerHTML = `矩阵行列式：${det}（行列式≠0时可逆）`;
-          return det;
-        };
+    <div class="info-area">
+      <div id="matrix-eqn">[[1,0],[0,1]] · [x,y] = [x,y]</div>
+      <div id="det-info">矩阵行列式：1.000（可逆）</div>
+      <div id="help-text">拖拽向量箭头调整位置 | 右侧面板调整矩阵变换参数</div>
+    </div>
 
-        updateCaption = (function(_this) {
-          return function() {
-            var str;
-            str = _this.texMatrix([[matrix[0].toFixed(2), matrix[2].toFixed(2)], 
-                                   [matrix[1].toFixed(2), matrix[3].toFixed(2)]]); // 矩阵元素保留2位小数
-            str += _this.texVector(inVec.slice(0,2), {color: color1});
-            str += '=' + _this.texVector(outVec.slice(0,2), {color: color2});
-            return katex.render(str, eqnElt);
-          };
-        })(this);
+    <!-- 右侧GUI面板 -->
+    <div class="gui-container">
+      <button id="reset-btn">重置所有变换</button>
+      <div id="transform-folders"></div>
+    </div>
+  </div>
 
-        computeMatrix = (function(_this) {
-          return function(first) {
-            var a, b, c, d, det, j, len, mat, mult, params;
-            if (!first) {
-              mat = [1, 0, 0, 1];
-              for (j = 0, len = paramses.length; j < len; j++) {
-                params = paramses[j];
-                mult = params.matrix;
-                a = mult[0] * mat[0] + mult[1] * mat[2];
-                b = mult[0] * mat[1] + mult[1] * mat[3];
-                c = mult[2] * mat[0] + mult[3] * mat[2];
-                d = mult[2] * mat[1] + mult[3] * mat[3];
-                mat = [a, b, c, d];
-              }
-              matrix[0] = mat[0];
-              matrix[1] = mat[1];
-              matrix[2] = mat[2];
-              matrix[3] = mat[3];
-            }
-            det = updateDeterminant(); // 计算并显示行列式
-            if (det * det < 0.00001) {
-              inverse = null;
-              drag2.enabled = false;
-              detElt.style.color = "#e74c3c"; // 行列式为0时标红
-            } else {
-              inverse = [matrix[3] / det, -matrix[1] / det, -matrix[2] / det, matrix[0] / det];
-              drag2.enabled = true;
-              detElt.style.color = "#3366cc"; // 行列式非0时标蓝
-            }
-            computeOut();
-            return updateCaption();
-          };
-        })(this);
+  <script>
+    // 核心配置
+    const CONFIG = {
+      canvasSize: 400,    // 画布大小
+      gridSize: 10,       // 网格分割数
+      vectorScale: 30,    // 向量坐标缩放比例（画布像素/单位）
+      origin: { x: 200, y: 200 }, // 画布原点（中心）
+      numTransforms: 3,   // 变换步骤数
+      initialVector: [2, 3] // 初始向量(x,y)
+    };
 
-        Params = (function() {
-          function Params() {
-            this.doRotate = bind(this.doRotate, this);
-            this.doYShear = bind(this.doYShear, this);
-            this.doXShear = bind(this.doXShear, this);
-            this.doScale = bind(this.doScale, this);
-            this.xscale = 1.0;
-            this.yscale = 1.0;
-            this.xshear = 0.0;
-            this.yshear = 0.0;
-            this.rotate = 0.0;
-            this.matrix = [1, 0, 0, 1];
-          }
+    // 全局状态
+    let state = {
+      matrix: [1, 0, 0, 1], // 最终变换矩阵 [a,b,c,d] → [[a,b],[c,d]]
+      inVec: [...CONFIG.initialVector], // 输入向量
+      outVec: [...CONFIG.initialVector], // 输出向量
+      inverseMatrix: [1, 0, 0, 1], // 逆矩阵
+      isInvertible: true, // 是否可逆
+      transforms: [], // 变换参数列表
+      dragging: null, // 拖拽状态：'source'/'target'/null
+      dragStart: { x: 0, y: 0 } // 拖拽起始位置
+    };
 
-          Params.prototype.doScale = function() {
-            this.rotate = this.xshear = this.yshear = 0.0;
-            this.matrix = [this.xscale, 0, 0, this.yscale];
-            return computeMatrix();
-          };
+    // 初始化变换参数
+    for (let i = 0; i < CONFIG.numTransforms; i++) {
+      state.transforms.push({
+        type: 'none', // 变换类型：none/scale/rotate/xshear/yshear
+        xscale: 1.0,
+        yscale: 1.0,
+        rotate: 0.0, // 弧度
+        xshear: 0.0,
+        yshear: 0.0,
+        matrix: [1, 0, 0, 1] // 该变换的矩阵
+      });
+    }
 
-          Params.prototype.doXShear = function() {
-            this.xscale = this.yscale = 1.0;
-            this.rotate = this.yshear = 0.0;
-            this.matrix = [1, this.xshear, 0, 1];
-            return computeMatrix();
-          };
+    // ========== 画布绘制 ==========
+    const sourceCanvas = document.getElementById('source-canvas');
+    const targetCanvas = document.getElementById('target-canvas');
+    const sourceCtx = sourceCanvas.getContext('2d');
+    const targetCtx = targetCanvas.getContext('2d');
 
-          Params.prototype.doYShear = function() {
-            this.xscale = this.yscale = 1.0;
-            this.rotate = this.xshear = 0.0;
-            this.matrix = [1, 0, this.yshear, 1];
-            return computeMatrix();
-          };
+    // 设置画布实际尺寸（避免模糊）
+    sourceCanvas.width = CONFIG.canvasSize;
+    sourceCanvas.height = CONFIG.canvasSize;
+    targetCanvas.width = CONFIG.canvasSize;
+    targetCanvas.height = CONFIG.canvasSize;
 
-          Params.prototype.doRotate = function() {
-            var c, s;
-            this.xscale = this.yscale = 1.0;
-            this.xshear = this.yshear = 0.0;
-            c = Math.cos(this.rotate);
-            s = Math.sin(this.rotate);
-            this.matrix = [c, -s, s, c];
-            return computeMatrix();
-          };
+    // 绘制网格
+    function drawGrid(ctx) {
+      ctx.clearRect(0, 0, CONFIG.canvasSize, CONFIG.canvasSize);
+      const gridStep = CONFIG.canvasSize / CONFIG.gridSize;
 
-          return Params;
-        })();
+      // 绘制网格线
+      ctx.strokeStyle = '#4a6584';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= CONFIG.gridSize; i++) {
+        // 水平线
+        ctx.beginPath();
+        ctx.moveTo(0, i * gridStep);
+        ctx.lineTo(CONFIG.canvasSize, i * gridStep);
+        ctx.stroke();
 
-        paramses = [];
-        gui = new dat.GUI();
-        gui.closed = false; // 6. GUI面板默认展开（原默认收起）
-        gui.width = 300; // 调整GUI宽度
+        // 垂直线
+        ctx.beginPath();
+        ctx.moveTo(i * gridStep, 0);
+        ctx.lineTo(i * gridStep, CONFIG.canvasSize);
+        ctx.stroke();
+      }
 
-        // 7. 新增：重置所有变换按钮
-        gui.add({reset: function() {
-          paramses.forEach(function(params) {
-            params.xscale = 1.0;
-            params.yscale = 1.0;
-            params.xshear = 0.0;
-            params.yshear = 0.0;
-            params.rotate = 0.0;
-            params.matrix = [1, 0, 0, 1];
-          });
-          gui.updateDisplay(); // 更新GUI显示
-          computeMatrix();
-        }}, 'reset').name('重置所有变换');
+      // 绘制坐标轴
+      ctx.strokeStyle = '#3498db';
+      ctx.lineWidth = 2;
+      // X轴
+      ctx.beginPath();
+      ctx.moveTo(0, CONFIG.origin.y);
+      ctx.lineTo(CONFIG.canvasSize, CONFIG.origin.y);
+      ctx.stroke();
+      // Y轴
+      ctx.beginPath();
+      ctx.moveTo(CONFIG.origin.x, 0);
+      ctx.lineTo(CONFIG.origin.x, CONFIG.canvasSize);
+      ctx.stroke();
 
-        for (i = j = 0, ref1 = numTransforms; 0 <= ref1 ? j < ref1 : j > ref1; i = 0 <= ref1 ? ++j : --j) {
-          folder = gui.addFolder("变换 " + (i + 1)); // 中文标签更友好
-          params = new Params();
-          if (i === 0) folder.open(); // 第一个变换默认展开
-          
-          // 8. 调整参数范围（缩放从-2~2扩大到-3~3，剪切范围优化）
-          folder.add(params, 'x轴放缩', -3, 3).step(0.05).onChange(params.doScale).listen();
-          folder.add(params, 'y轴放缩', -3, 3).step(0.05).onChange(params.doScale).listen();
-          folder.add(params, '旋转', -Math.PI, Math.PI).step(0.05 * Math.PI).onChange(params.doRotate).listen();
-          folder.add(params, 'x轴剪切', -3, 3).step(0.05).onChange(params.doXShear).listen();
-          folder.add(params, 'y轴剪切', -3, 3).step(0.05).onChange(params.doYShear).listen();
-          
-          paramses.push(params);
+      // 坐标轴箭头
+      ctx.fillStyle = '#3498db';
+      // X轴箭头
+      ctx.beginPath();
+      ctx.moveTo(CONFIG.canvasSize - 10, CONFIG.origin.y - 5);
+      ctx.lineTo(CONFIG.canvasSize, CONFIG.origin.y);
+      ctx.lineTo(CONFIG.canvasSize - 10, CONFIG.origin.y + 5);
+      ctx.fill();
+      // Y轴箭头
+      ctx.beginPath();
+      ctx.moveTo(CONFIG.origin.x - 5, 10);
+      ctx.lineTo(CONFIG.origin.x, 0);
+      ctx.lineTo(CONFIG.origin.x + 5, 10);
+      ctx.fill();
+    }
+
+    // 绘制向量（从原点出发）
+    function drawVector(ctx, vec, color, labelEl) {
+      const x = CONFIG.origin.x + vec[0] * CONFIG.vectorScale;
+      const y = CONFIG.origin.y - vec[1] * CONFIG.vectorScale; // 画布y轴向下，数学y轴向上
+
+      // 绘制向量线
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(CONFIG.origin.x, CONFIG.origin.y);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+
+      // 绘制箭头
+      const angle = Math.atan2(y - CONFIG.origin.y, x - CONFIG.origin.x);
+      const arrowSize = 10;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(
+        x - arrowSize * Math.cos(angle - Math.PI / 6),
+        y - arrowSize * Math.sin(angle - Math.PI / 6)
+      );
+      ctx.lineTo(
+        x - arrowSize * Math.cos(angle + Math.PI / 6),
+        y - arrowSize * Math.sin(angle + Math.PI / 6)
+      );
+      ctx.fill();
+
+      // 更新标签位置
+      if (labelEl) {
+        labelEl.style.left = `${x + 10}px`;
+        labelEl.style.top = `${y - 20}px`;
+      }
+
+      return { x, y }; // 返回向量终点画布坐标
+    }
+
+    // 刷新画布
+    function refreshCanvases() {
+      // 绘制左侧原始视图
+      drawGrid(sourceCtx);
+      drawVector(sourceCtx, state.inVec, '#2ecc71', document.getElementById('source-vector-label'));
+
+      // 绘制右侧变换后视图
+      drawGrid(targetCtx);
+      const targetColor = state.isInvertible ? '#e74c3c' : '#95a5a6';
+      drawVector(targetCtx, state.outVec, targetColor, document.getElementById('target-vector-label'));
+    }
+
+    // ========== 矩阵计算 ==========
+    // 矩阵乘法：a * b（均为[1,0,0,1]格式的2x2矩阵）
+    function multiplyMatrices(a, b) {
+      const a11 = a[0], a12 = a[1], a21 = a[2], a22 = a[3];
+      const b11 = b[0], b12 = b[1], b21 = b[2], b22 = b[3];
+      return [
+        a11*b11 + a12*b21, // 新a
+        a11*b12 + a12*b22, // 新b
+        a21*b11 + a22*b21, // 新c
+        a21*b12 + a22*b22  // 新d
+      ];
+    }
+
+    // 计算最终变换矩阵（所有变换叠加）
+    function updateFinalMatrix() {
+      let finalMat = [1, 0, 0, 1]; // 单位矩阵
+      state.transforms.forEach(transform => {
+        finalMat = multiplyMatrices(finalMat, transform.matrix);
+      });
+      state.matrix = finalMat;
+
+      // 计算行列式和逆矩阵
+      const det = state.matrix[0] * state.matrix[3] - state.matrix[1] * state.matrix[2];
+      state.isInvertible = Math.abs(det) > 0.0001;
+      if (state.isInvertible) {
+        state.inverseMatrix = [
+          state.matrix[3]/det, -state.matrix[1]/det,
+          -state.matrix[2]/det, state.matrix[0]/det
+        ];
+      }
+
+      // 更新输出向量
+      updateOutVector();
+
+      // 更新信息显示
+      updateInfoDisplay(det);
+    }
+
+    // 计算输出向量（inVec → 矩阵变换 → outVec）
+    function updateOutVector() {
+      const [a, b, c, d] = state.matrix;
+      state.outVec[0] = a * state.inVec[0] + b * state.inVec[1];
+      state.outVec[1] = c * state.inVec[0] + d * state.inVec[1];
+    }
+
+    // 计算输入向量（outVec → 逆矩阵 → inVec）
+    function updateInVector() {
+      if (!state.isInvertible) return;
+      const [a, b, c, d] = state.inverseMatrix;
+      state.inVec[0] = a * state.outVec[0] + b * state.outVec[1];
+      state.inVec[1] = c * state.outVec[0] + d * state.outVec[1];
+    }
+
+    // 更新页面信息（矩阵公式、行列式）
+    function updateInfoDisplay(det) {
+      const eqnEl = document.getElementById('matrix-eqn');
+      const detEl = document.getElementById('det-info');
+
+      // 格式化矩阵和向量显示
+      const mat = state.matrix.map(v => v.toFixed(2));
+      const inVec = state.inVec.map(v => v.toFixed(2));
+      const outVec = state.outVec.map(v => v.toFixed(2));
+      eqnEl.innerHTML = `[[${mat[0]},${mat[1]}],[${mat[2]},${mat[3]}]] · [${inVec[0]},${inVec[1]}] = [${outVec[0]},${outVec[1]}]`;
+
+      // 行列式信息
+      const detStr = det.toFixed(3);
+      const invertStr = state.isInvertible ? '（可逆）' : '（不可逆，无法拖拽右侧向量）';
+      detEl.innerHTML = `矩阵行列式：${detStr} ${invertStr}`;
+      detEl.style.color = state.isInvertible ? '#2ecc71' : '#e74c3c';
+    }
+
+    // ========== GUI面板生成 ==========
+    const transformFoldersEl = document.getElementById('transform-folders');
+
+    // 生成单个变换的GUI控件
+    function createTransformFolder(index) {
+      const transform = state.transforms[index];
+      const folderEl = document.createElement('div');
+      folderEl.className = 'gui-folder';
+      folderEl.innerHTML = `<h3>变换 ${index + 1}</h3>`;
+
+      // 缩放控件
+      const scaleGroup = createControlGroup('缩放', [
+        { label: 'X轴', key: 'xscale', min: -3, max: 3, step: 0.05, onChange: () => updateTransformMatrix(index, 'scale') },
+        { label: 'Y轴', key: 'yscale', min: -3, max: 3, step: 0.05, onChange: () => updateTransformMatrix(index, 'scale') }
+      ]);
+
+      // 旋转控件
+      const rotateGroup = createControlGroup('旋转（弧度）', [
+        { label: '角度', key: 'rotate', min: -Math.PI, max: Math.PI, step: 0.05, onChange: () => updateTransformMatrix(index, 'rotate') }
+      ]);
+
+      // 剪切控件
+      const shearGroup = createControlGroup('剪切', [
+        { label: 'X轴', key: 'xshear', min: -3, max: 3, step: 0.05, onChange: () => updateTransformMatrix(index, 'xshear') },
+        { label: 'Y轴', key: 'yshear', min: -3, max: 3, step: 0.05, onChange: () => updateTransformMatrix(index, 'yshear') }
+      ]);
+
+      folderEl.appendChild(scaleGroup);
+      folderEl.appendChild(rotateGroup);
+      folderEl.appendChild(shearGroup);
+      transformFoldersEl.appendChild(folderEl);
+
+      // 初始化控件值
+      updateControlValues(folderEl, transform);
+    }
+
+    // 创建控件组
+    function createControlGroup(title, controls) {
+      const groupEl = document.createElement('div');
+      groupEl.innerHTML = `<strong>${title}</strong>`;
+      controls.forEach(ctrl => {
+        const ctrlEl = document.createElement('div');
+        ctrlEl.className = 'gui-control';
+        ctrlEl.innerHTML = `
+          <label>${ctrl.label}</label>
+          <input type="number" data-key="${ctrl.key}" min="${ctrl.min}" max="${ctrl.max}" step="${ctrl.step}" value="0">
+        `;
+        const inputEl = ctrlEl.querySelector('input');
+        inputEl.addEventListener('input', (e) => {
+          state.transforms[ctrl.index][ctrl.key] = parseFloat(e.target.value) || 0;
+          ctrl.onChange();
+        });
+        groupEl.appendChild(ctrlEl);
+      });
+      return groupEl;
+    }
+
+    // 更新控件值
+    function updateControlValues(folderEl, transform) {
+      folderEl.querySelectorAll('input').forEach(input => {
+        const key = input.dataset.key;
+        input.value = transform[key].toFixed(2);
+      });
+    }
+
+    // 更新单个变换的矩阵
+    function updateTransformMatrix(index, type) {
+      const transform = state.transforms[index];
+      transform.type = type;
+
+      switch (type) {
+        case 'scale':
+          transform.matrix = [transform.xscale, 0, 0, transform.yscale];
+          break;
+        case 'rotate':
+          const c = Math.cos(transform.rotate);
+          const s = Math.sin(transform.rotate);
+          transform.matrix = [c, -s, s, c];
+          break;
+        case 'xshear':
+          transform.matrix = [1, transform.xshear, 0, 1];
+          break;
+        case 'yshear':
+          transform.matrix = [1, 0, transform.yshear, 1];
+          break;
+      }
+
+      // 重新计算最终矩阵和界面
+      updateFinalMatrix();
+      refreshCanvases();
+    }
+
+    // 重置所有变换
+    function resetAllTransforms() {
+      state.transforms.forEach(transform => {
+        transform.type = 'none';
+        transform.xscale = 1.0;
+        transform.yscale = 1.0;
+        transform.rotate = 0.0;
+        transform.xshear = 0.0;
+        transform.yshear = 0.0;
+        transform.matrix = [1, 0, 0, 1];
+      });
+
+      // 重置向量和矩阵
+      state.inVec = [...CONFIG.initialVector];
+      state.outVec = [...CONFIG.initialVector];
+      updateFinalMatrix();
+
+      // 更新控件值
+      document.querySelectorAll('.gui-folder').forEach((folder, index) => {
+        updateControlValues(folder, state.transforms[index]);
+      });
+
+      refreshCanvases();
+    }
+
+    // ========== 拖拽逻辑 ==========
+    // 绑定拖拽事件
+    function bindDragEvents() {
+      // 左侧输入向量拖拽
+      const sourceContainer = document.getElementById('source-canvas-container');
+      sourceContainer.addEventListener('mousedown', (e) => {
+        const rect = sourceCanvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        // 检查是否点击了向量箭头（简化：点击终点附近20px内）
+        const vecEnd = drawVector(sourceCtx, state.inVec, '#2ecc71');
+        if (Math.hypot(x - vecEnd.x, y - vecEnd.y) < 20) {
+          state.dragging = 'source';
+          state.dragStart.x = x;
+          state.dragStart.y = y;
+        }
+      });
+
+      // 右侧输出向量拖拽（仅可逆时）
+      const targetContainer = document.getElementById('target-canvas-container');
+      targetContainer.addEventListener('mousedown', (e) => {
+        if (!state.isInvertible) return;
+        const rect = targetCanvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const vecEnd = drawVector(targetCtx, state.outVec, '#e74c3c');
+        if (Math.hypot(x - vecEnd.x, y - vecEnd.y) < 20) {
+          state.dragging = 'target';
+          state.dragStart.x = x;
+          state.dragStart.y = y;
+        }
+      });
+
+      // 全局鼠标移动和松开
+      document.addEventListener('mousemove', (e) => {
+        if (!state.dragging) return;
+
+        const rect = state.dragging === 'source' ? sourceCanvas.getBoundingClientRect() : targetCanvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        // 计算坐标变化（画布像素 → 数学坐标）
+        const deltaX = (x - state.dragStart.x) / CONFIG.vectorScale;
+        const deltaY = (state.dragStart.y - y) / CONFIG.vectorScale; // 画布y轴向下，数学y轴向上
+
+        if (state.dragging === 'source') {
+          state.inVec[0] += deltaX;
+          state.inVec[1] += deltaY;
+          updateOutVector();
+        } else {
+          state.outVec[0] += deltaX;
+          state.outVec[1] += deltaY;
+          updateInVector();
         }
 
-        // 调整网格和坐标轴样式
-        gridOpts = {
-          color: 'white',
-          opacity: 0.3, // 提高网格透明度
-          width: 1,
-          zOrder: 1,
-          zIndex: 1
-        };
-        axisOpts = {
-          color: '#3498db', // 坐标轴改为蓝色
-          opacity: 0.8, // 提高坐标轴透明度
-          zIndex: 1,
-          zOrder: 1,
-          size: 3
-        };
+        // 更新拖拽起始位置
+        state.dragStart.x = x;
+        state.dragStart.y = y;
 
-        // 左侧原始视图
-        view1 = this.view({
-          name: 'view1',
-          gridOpts: gridOpts,
-          axisOpts: axisOpts,
-          axisLabels: true // 显示坐标轴标签（x/y）
-        });
-        view1.image({
-          image: this.image
-        }).matrix({
-          width: 2,
-          height: 2,
-          channels: 2,
-          data: [[[-10, -10], [10, -10]], [[-10, 10], [10, 10]]]
-        }).surface({
-          color: 'white',
-          points: '<',
-          map: '<<',
-          fill: true,
-          zOrder: 0
-        });
-
-        // 右侧变换后视图
-        view2 = this.view({
-          name: 'view2',
-          viewOpts: {
-            position: [2.2, 0, 0]
-          },
-          gridOpts: gridOpts,
-          axisOpts: axisOpts,
-          axisLabels: true // 显示坐标轴标签
-        });
-
-        clipCube = this.clipCube(view2, {
-          draw: false,
-          hilite: false,
-          range: 10.0,
-          pass: 'view'
-        });
-        clipCube.clipped.transform({}, {
-          matrix: function() {
-            return [matrix[0], matrix[1], 0, 0, 
-                    matrix[2], matrix[3], 0, 0, 
-                    0, 0, 1, 0, 0, 0, 0, 1];
-          }
-        }).image({
-          image: this.image
-        }).matrix({
-          width: 2,
-          height: 2,
-          channels: 2,
-          data: [[[-10, -10], [10, -10]], [[-10, 10], [10, 10]]]
-        }).surface({
-          color: 'white',
-          points: '<',
-          map: '<<',
-          fill: true,
-          zOrder: 0
-        });
-
-        // 向量计算逻辑
-        computeOut = function() {
-          outVec[0] = matrix[0] * inVec[0] + matrix[1] * inVec[1];
-          outVec[1] = matrix[2] * inVec[0] + matrix[3] * inVec[1];
-        };
-        computeIn = function() {
-          if (inverse != null) {
-            inVec[0] = inverse[0] * outVec[0] + inverse[1] * outVec[1];
-            inVec[1] = inverse[2] * outVec[0] + inverse[3] * outVec[1];
-          }
-        };
-
-        // 向量样式优化
-        vectorOpts = {
-          size: 5, // 增大向量箭头
-          width: 4, // 加粗向量线
-          zIndex: 2
-        };
-        zeroOpts = {
-          zIndex: 2,
-          size: 18 // 增大原点标记
-        };
-        labelOpts = {
-          offset: [0, 25],
-          size: 16, // 增大标签字体
-          zIndex: 3,
-          outline: 0,
-          background: "rgba(255,255,255,0.8)" // 半透明背景
-        };
-        hiliteOpts = {
-          zTest: true,
-          zWrite: true,
-          zOrder: 2,
-          opacity: 0.7 // 提高拖拽高亮透明度
-        };
-
-        // 输入向量（初始位置调整为[3,2]）
-        inVec = [3, 2, 0];
-        this.labeledVectors(view1, {
-          name: 'labeled1',
-          vectors: [inVec],
-          colors: [color1.brighten(.2)], // 提亮颜色
-          labels: ['输入向量 x'], // 更清晰的标签
-          live: true,
-          zeroPoints: true,
-          zeroThreshold: 0.3,
-          vectorOpts: vectorOpts,
-          labelOpts: labelOpts,
-          zeroOpts: zeroOpts
-        });
-        this.draggable(view1, {
-          name: 'drag1',
-          points: [inVec],
-          onDrag: computeOut,
-          postDrag: updateCaption,
-          hiliteOpts: hiliteOpts
-        });
-
-        // 输出向量
-        outVec = [3, 2, 0];
-        this.labeledVectors(view2, {
-          name: 'labeled2',
-          vectors: [outVec],
-          colors: [color2.brighten(.2)],
-          labels: ['输出向量 b'],
-          live: true,
-          zeroPoints: true,
-          zeroThreshold: 0.3,
-          vectorOpts: vectorOpts,
-          labelOpts: labelOpts,
-          zeroOpts: zeroOpts
-        });
-        drag2 = this.draggable(view2, {
-          name: 'drag2',
-          points: [outVec],
-          onDrag: computeIn,
-          postDrag: updateCaption,
-          hiliteOpts: hiliteOpts
-        });
-
-        // 页面标题和说明
-        this.caption(`
-          <h2 style="text-align:center; color:#2c3e50;">2x2矩阵变换交互式演示</h2>
-          <p id="det-text"></p> <!-- 行列式显示区域 -->
-          <p style="text-align:center;"><span id="eqn-here"></span></p>
-          <p id="help-text">✓ 拖拽左侧"输入向量x"查看变换结果 | ✓ 行列式≠0时可拖拽右侧"输出向量b"反推输入</p>
-        `);
-        eqnElt = document.getElementById('eqn-here');
-        detElt = document.getElementById('det-text'); // 绑定行列式元素
-        return computeMatrix(true);
+        // 刷新界面
+        refreshCanvases();
+        updateInfoDisplay(state.matrix[0] * state.matrix[3] - state.matrix[1] * state.matrix[2]);
       });
-    });
+
+      document.addEventListener('mouseup', () => {
+        state.dragging = null;
+      });
+
+      // 触摸事件支持（移动端）
+      ['touchstart', 'touchmove', 'touchend'].forEach(eventType => {
+        document.addEventListener(eventType, (e) => {
+          const touch = e.touches ? e.touches[0] : null;
+          if (!touch) return;
+
+          // 模拟鼠标事件
+          const mouseEvent = new MouseEvent(
+            eventType === 'touchstart' ? 'mousedown' :
+            eventType === 'touchmove' ? 'mousemove' : 'mouseup',
+            { clientX: touch.clientX, clientY: touch.clientY }
+          );
+          document.dispatchEvent(mouseEvent);
+          e.preventDefault();
+        });
+      });
+    }
+
+    // ========== 初始化 ==========
+    function init() {
+      // 生成GUI面板
+      for (let i = 0; i < CONFIG.numTransforms; i++) {
+        createTransformFolder(i);
+      }
+
+      // 绑定重置按钮事件
+      document.getElementById('reset-btn').addEventListener('click', resetAllTransforms);
+
+      // 初始化矩阵和向量
+      updateFinalMatrix();
+
+      // 绑定拖拽事件
+      bindDragEvents();
+
+      // 首次绘制
+      refreshCanvases();
+    }
+
+    // 启动应用
+    init();
   </script>
 </body>
 </html>

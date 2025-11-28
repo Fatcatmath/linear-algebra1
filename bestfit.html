@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="initial-scale=1, maximum-scale=1">
-  <title>Function of Best Fit</title>
+  <title>最佳拟合函数</title>
   <link rel="shortcut icon" href="img/gatech.gif"/>
 
   
@@ -340,8 +340,8 @@ window.demo = new (size === 2 ? Demo2D : Demo)({}, function() {
     points: targets,
     postDrag: solve
   });
-  str = '<p>Best-fit equation: <span id="eqn-here"></span></p>';
-  str += '<p>Quantity minimized: <span id="sumsq-here"></span></p>';
+  str = '<p>最佳拟合方程: <span id="eqn-here"></span></p>';
+  str += '<p>最小化平方和: <span id="sumsq-here"></span></p>';
   this.caption(str);
   bestFitElt = document.getElementById('eqn-here');
   minimElt = document.getElementById('sumsq-here');
@@ -363,7 +363,7 @@ window.demo = new (size === 2 ? Demo2D : Demo)({}, function() {
         minimized.push((diff.toFixed(2)) + "^2");
         quantity += diff * diff;
       }
-      str = '\\quad' + quantity.toFixed(2) + '=' + minimized.join('+');
+      str = '\\quad 平方和:' + quantity.toFixed(2) + '=' + minimized.join('+');
       return katex.render(str, minimElt);
     };
   })(this);
@@ -375,4 +375,3 @@ window.demo = new (size === 2 ? Demo2D : Demo)({}, function() {
     </script>
 </body>
 </html>
-

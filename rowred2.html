@@ -188,15 +188,15 @@ window.slideshow = rrmat.slideshow().caption("<b>步骤 1a:</b> 这是第一列�
   color: "black",
   entries: [[1, 1]],
   duration: 1
-}).caption("<b>步骤 2a</b> 我们得将最后两行交换.").rowSwap(1, 2)["break"]().caption("<b>步骤 2b:</b> 我们将第2行除以 -5 让这个主元变为 1.").rowMult(1, -1 / 5).caption("<b>Step 2b:</b> Divide row 2 by -5 to make this pivat a 1.\n(The other entries in this row are divisible by 5; that's why we\nused this row as the pivot row.)")["break"]().caption("<b>Step 2c:</b> To kill this entry...").setStyle(blink("blue", [[2, 1]], 1)).caption("<b>Step 2c:</b>\nTo kill this entry, we add 7 times row 2 to row 3.").rowRep(1, 7, 2).setStyle({
+}).caption("<b>步骤 2a</b> 我们得将最后两行交换.").rowSwap(1, 2)["break"]().caption("<b>步骤 2b:</b> 我们将第2行除以 -5 让这个主元变为 1.").rowMult(1, -1 / 5).caption("<b>步骤 2b:</b> 将第2行除以 -5 使得这个主元为1, 因为这一行元素都除以-5")["break"]().caption("<b>步骤 2c:</b> 为了消除这个元素,").setStyle(blink("blue", [[2, 1]], 1)).caption("<b>步骤 2c:</b>为了消去这一行我们将第二行乘以-7加到第三行.").rowRep(1, 7, 2).setStyle({
   color: "black",
   entries: [[2, 1]],
   duration: 0.2
-})["break"]().caption("Now the second column (the part we care about) is clear\nexcept for the pivot in the pivot, so we can ignore the\nsecond column and second row.").setStyle({
+})["break"]().caption("现在 第二列除了主元以外其他的元素为0, 因此我们可以忽略第二行和第二列.").setStyle({
   color: "rgb(200,200,200)",
   entries: [[1, 1], [1, 2], [1, 3], [2, 1]],
   duration: 1
-})["break"]().caption("<b>步骤 3a:</b>我们将最后一行的第一个非零元作为主元.").setStyle(blink("red", [[2, 2]]))["break"]().caption("<b>步骤 3b:</b>将其除以10变为1.").rowMult(2, 1 / 10)["break"]().caption(" <i>row echelon form</i>.").setStyle([
+})["break"]().caption("<b>步骤 3a:</b>我们将最后一行的第一个非零元作为主元.").setStyle(blink("red", [[2, 2]]))["break"]().caption("<b>步骤 3b:</b>将其除以10变为1.").rowMult(2, 1 / 10)["break"]().caption(" <i>行最简形</i>.").setStyle([
   {
     color: "red",
     entries: [[0, 0], [1, 1], [2, 2]],

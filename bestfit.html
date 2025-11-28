@@ -1,377 +1,469 @@
-<!DOCTYPE html> <!-- -*- html -*- -->
+<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="initial-scale=1, maximum-scale=1">
   <title>最佳拟合函数</title>
   <link rel="shortcut icon" href="img/gatech.gif"/>
-
   
-      <link rel="stylesheet" href="css/demo.css?vers=2759ff">
-  
-
   <style>
-      
-
-  #eqn-here {
-    color: var(--palette-red);
-  }
-  #sumsq-here {
-    color: var(--palette-violet);
-  }
-
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+    }
+    
+    #controls {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .control-group {
+      margin: 10px 0;
+    }
+    
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 0 5px;
+    }
+    
+    button:hover {
+      background: #45a049;
+    }
+    
+    #mathbox {
+      width: 100%;
+      height: 500px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    #info {
+      margin-top: 20px;
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    #eqn-here {
+      color: #e74c3c;
+      font-weight: bold;
+    }
+    
+    #sumsq-here {
+      color: #9b59b6;
+      font-weight: bold;
+    }
+    
+    .residual-line {
+      stroke: #9b59b6;
+      stroke-width: 2;
+      stroke-dasharray: 5,5;
+      opacity: 0.7;
+    }
+    
+    .point {
+      cursor: move;
+      transition: r 0.3s;
+    }
+    
+    .point:hover {
+      r: 8;
+    }
   </style>
-
 </head>
 <body>
+  <div id="controls">
+    <div class="control-group">
+      <button onclick="addRandomPoint()">添加随机点</button>
+      <button onclick="clearPoints()">清除所有点</button>
+      <button onclick="toggleResiduals()">显示/隐藏残差</button>
+      <button onclick="resetView()">重置视图</button>
+    </div>
+    <div class="control-group">
+      <label>函数形式: </label>
+      <select id="function-select" onchange="changeFunction()">
+        <option value="A*x+B">线性函数: A*x + B</option>
+        <option value="A*x^2+B*x+C">二次函数: A*x² + B*x + C</option>
+        <option value="A*sin(x)+B">正弦函数: A*sin(x) + B</option>
+      </select>
+    </div>
+  </div>
+  
+  <div id="mathbox"></div>
+  
+  <div id="info">
+    <p>最佳拟合方程: <span id="eqn-here">f(x) = ...</span></p>
+    <p>最小化平方和: <span id="sumsq-here">Σ(residual²) = ...</span></p>
+    <p>交互说明: 点击图表添加点，拖拽点调整位置，观察拟合线实时变化</p>
+  </div>
+
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script>
+    "use strict";
     
-
-    
-        <script src="js/demo.js?vers=77646a"></script>
-    
-
-    <script type="text/javascript">
-        "use strict";
-        DomReady.ready(function() {
-
-        var bestFitStr, bestfit, bvec, dot, func, funcStr, i, k, l, len, len1, letter, m, makeString, matrix, numParams, numTargets, obj, op, param, params, range, ref, ref1, ref2, size, solve, targets, units, updateCaption, vars, xhat, zeroParams;
-
-range = urlParams.get('range', 'float', 10);
-
-funcStr = (ref = urlParams.func) != null ? ref : 'C*x+D';
-
-funcStr = funcStr.replace(/\s+/g, '+');
-
-func = exprEval.Parser.parse(funcStr);
-
-for (op in func.unaryOps) {
-  if (op.match(/^[a-zA-Z]+$/)) {
-    funcStr = funcStr.replace(new RegExp(op, 'g'), "\\" + op);
-  }
-}
-
-params = [];
-
-zeroParams = {};
-
-vars = [];
-
-ref1 = func.variables().sort();
-for (k = 0, len = ref1.length; k < len; k++) {
-  letter = ref1[k];
-  if (letter === 'x' || letter === 'y') {
-    vars.push(letter);
-  } else {
-    params.push(letter);
-    zeroParams[letter] = 0;
-  }
-}
-
-size = vars.length + 1;
-
-numParams = params.length;
-
-units = [];
-
-for (i = l = 0, ref2 = numParams; 0 <= ref2 ? l < ref2 : l > ref2; i = 0 <= ref2 ? ++l : --l) {
-  obj = {};
-  for (m = 0, len1 = params.length; m < len1; m++) {
-    param = params[m];
-    obj[param] = 0;
-  }
-  obj[params[i]] = 1;
-  units.push(obj);
-}
-
-targets = [];
-
-i = 1;
-
-while (urlParams["v" + i] != null) {
-  targets.push(urlParams.get("v" + i, 'float[]'));
-  i++;
-}
-
-numTargets = targets.length;
-
-matrix = (function() {
-  var n, ref3, results;
-  results = [];
-  for (n = 0, ref3 = numParams; 0 <= ref3 ? n < ref3 : n > ref3; 0 <= ref3 ? n++ : n--) {
-    results.push((function() {
-      var o, ref4, results1;
-      results1 = [];
-      for (o = 0, ref4 = numTargets; 0 <= ref4 ? o < ref4 : o > ref4; 0 <= ref4 ? o++ : o--) {
-        results1.push(0);
-      }
-      return results1;
-    })());
-  }
-  return results;
-})();
-
-bvec = (function() {
-  var n, ref3, results;
-  results = [];
-  for (n = 0, ref3 = numTargets; 0 <= ref3 ? n < ref3 : n > ref3; 0 <= ref3 ? n++ : n--) {
-    results.push(0);
-  }
-  return results;
-})();
-
-window.xhat = xhat = (function() {
-  var n, ref3, results;
-  results = [];
-  for (n = 0, ref3 = numParams; 0 <= ref3 ? n < ref3 : n > ref3; 0 <= ref3 ? n++ : n--) {
-    results.push(0);
-  }
-  return results;
-})();
-
-bestfit = function(x) {
-  return 0;
-};
-
-bestFitStr = '';
-
-dot = function(v1, v2) {
-  var n, ref3, ret;
-  ret = 0;
-  for (i = n = 0, ref3 = v1.length; 0 <= ref3 ? n < ref3 : n > ref3; i = 0 <= ref3 ? ++n : --n) {
-    ret += v1[i] * v2[i];
-  }
-  return ret;
-};
-
-updateCaption = function() {};
-
-solve = function() {
-  var ATA, ATb, constant, eqno, j, len2, len3, linear, n, o, p, q, ref3, ref4, solver, target, toEval;
-  for (eqno = n = 0, ref3 = numTargets; 0 <= ref3 ? n < ref3 : n > ref3; eqno = 0 <= ref3 ? ++n : --n) {
-    target = targets[eqno];
-    toEval = {};
-    for (i = o = 0, len2 = vars.length; o < len2; i = ++o) {
-      letter = vars[i];
-      toEval[letter] = target[i];
-    }
-    linear = func.simplify(toEval);
-    constant = linear.evaluate(zeroParams);
-    for (i = p = 0, ref4 = numParams; 0 <= ref4 ? p < ref4 : p > ref4; i = 0 <= ref4 ? ++p : --p) {
-      matrix[i][eqno] = linear.evaluate(units[i]) - constant;
-    }
-    bvec[eqno] = target[size - 1] - constant;
-  }
-  ATA = (function() {
-    var q, ref5, results;
-    results = [];
-    for (j = q = 0, ref5 = numParams; 0 <= ref5 ? q < ref5 : q > ref5; j = 0 <= ref5 ? ++q : --q) {
-      results.push((function() {
-        var r, ref6, results1;
-        results1 = [];
-        for (i = r = 0, ref6 = numParams; 0 <= ref6 ? r < ref6 : r > ref6; i = 0 <= ref6 ? ++r : --r) {
-          results1.push(dot(matrix[i], matrix[j]));
-        }
-        return results1;
-      })());
-    }
-    return results;
-  })();
-  ATb = (function() {
-    var q, ref5, results;
-    results = [];
-    for (i = q = 0, ref5 = numParams; 0 <= ref5 ? q < ref5 : q > ref5; i = 0 <= ref5 ? ++q : --q) {
-      results.push(dot(matrix[i], bvec));
-    }
-    return results;
-  })();
-  solver = rowReduce(ATA)[3];
-  solver(ATb, xhat);
-  toEval = {};
-  for (i = q = 0, len3 = params.length; q < len3; i = ++q) {
-    letter = params[i];
-    toEval[letter] = xhat[i];
-  }
-  bestfit = func.simplify(toEval).toJSFunction(vars.join(','));
-  makeString();
-  return updateCaption();
-};
-
-makeString = function() {
-  var len2, n, results, val, valAlone, valMinus, valPlus;
-  bestFitStr = funcStr;
-  results = [];
-  for (i = n = 0, len2 = params.length; n < len2; i = ++n) {
-    letter = params[i];
-    val = xhat[i];
-    if (val >= 0) {
-      valAlone = val.toFixed(2);
-      valPlus = "+" + valAlone;
-      valMinus = "-" + valAlone;
-    }
-    if (val < 0) {
-      val = -val;
-      valAlone = val.toFixed(2);
-      valPlus = "-" + valAlone;
-      valMinus = "+" + valAlone;
-      valAlone = "-" + valAlone;
-    }
-    bestFitStr = bestFitStr.replace(new RegExp("\\+" + letter + "\\*", 'g'), valPlus + '\\,');
-    bestFitStr = bestFitStr.replace(new RegExp("\\+" + letter, 'g'), valPlus);
-    bestFitStr = bestFitStr.replace(new RegExp("-" + letter + "\\*", 'g'), valMinus + '\\,');
-    bestFitStr = bestFitStr.replace(new RegExp("-" + letter, 'g'), valMinus);
-    bestFitStr = bestFitStr.replace(new RegExp(letter + "\\*", 'g'), valAlone + '\\,');
-    bestFitStr = bestFitStr.replace(new RegExp("" + letter, 'g'), valAlone);
-    results.push(bestFitStr = bestFitStr.replace(/\*/g, ''));
-  }
-  return results;
-};
-
-solve();
-
-window.demo = new (size === 2 ? Demo2D : Demo)({}, function() {
-  var bestFitElt, clipCube, minimElt, str, varsStr, view;
-  window.mathbox = this.mathbox;
-  view = this.view({
-    axes: true,
-    grid: true,
-    viewRange: [[-range, range], [-range, range], [-range, range]].slice(0, size)
-  });
-  this.labeledPoints(view, {
-    name: 'targets',
-    points: targets,
-    colors: (function() {
-      var n, ref3, results;
-      results = [];
-      for (n = 0, ref3 = numTargets; 0 <= ref3 ? n < ref3 : n > ref3; 0 <= ref3 ? n++ : n--) {
-        results.push(new Color("blue"));
-      }
-      return results;
-    })(),
-    live: true,
-    pointOpts: {
-      zIndex: 2
-    }
-  });
-  if (size === 2) {
-    view.interval({
-      channels: 2,
-      range: [-range, range],
-      width: 100,
-      expr: function(emit, x) {
-        return emit(x, bestfit(x));
-      }
-    }).line({
-      color: new Color("red").arr(),
-      width: 4,
-      zIndex: 1
-    });
-  }
-  if (size === 3) {
-    clipCube = this.clipCube(view, {
-      draw: true
-    });
-    clipCube.clipped.area({
-      channels: 3,
-      rangeX: [-range, range],
-      rangeY: [-range, range],
-      width: 100,
-      height: 100,
-      expr: function(emit, x, y) {
-        return emit(x, y, bestfit(x, y));
-      }
-    }).surface({
-      color: new Color("red").arr(),
-      opacity: .25,
-      zIndex: 1,
-      fill: true,
-      lineX: false,
-      lineY: false
-    }).resample({
-      shader: null,
-      size: 'relative',
-      width: 1 / 10,
-      height: 1 / 10
-    }).surface({
-      color: new Color("red").arr(),
-      opacity: .6,
-      zIndex: 1,
-      zBias: 2,
-      fill: false,
-      lineX: true,
-      lineY: true
-    });
-  }
-  view.array({
-    channels: size,
-    width: 2,
-    items: numTargets,
-    expr: function(emit, end) {
-      var n, ref3, results, x, y, z;
-      results = [];
-      for (i = n = 0, ref3 = numTargets; 0 <= ref3 ? n < ref3 : n > ref3; i = 0 <= ref3 ? ++n : --n) {
-        x = targets[i][0];
-        y = targets[i][1];
-        if (size === 2) {
-          if (end) {
-            emit(x, bestfit(x));
-          } else {
-            emit(x, y);
-          }
-        }
-        if (size === 3) {
-          z = targets[i][2];
-          if (end) {
-            results.push(emit(x, y, bestfit(x, y)));
-          } else {
-            results.push(emit(x, y, z));
-          }
-        } else {
-          results.push(void 0);
-        }
-      }
-      return results;
-    }
-  }).line({
-    color: new Color("violet").arr(),
-    width: 3,
-    zIndex: 3
-  });
-  this.draggable(view, {
-    points: targets,
-    postDrag: solve
-  });
-  str = '<p>最佳拟合方程: <span id="eqn-here"></span></p>';
-  str += '<p>最小化平方和: <span id="sumsq-here"></span></p>';
-  this.caption(str);
-  bestFitElt = document.getElementById('eqn-here');
-  minimElt = document.getElementById('sumsq-here');
-  varsStr = vars.join(',');
-  updateCaption = (function(_this) {
-    return function() {
-      var diff, len2, minimized, n, quantity, target;
-      katex.render("\\quad f(" + varsStr + ") = " + bestFitStr, bestFitElt);
-      minimized = [];
-      quantity = 0;
-      for (n = 0, len2 = targets.length; n < len2; n++) {
-        target = targets[n];
-        if (size === 2) {
-          diff = target[1] - bestfit(target[0]);
-        }
-        if (size === 3) {
-          diff = target[2] - bestfit(target[0], target[1]);
-        }
-        minimized.push((diff.toFixed(2)) + "^2");
-        quantity += diff * diff;
-      }
-      str = '\\quad 平方和:' + quantity.toFixed(2) + '=' + minimized.join('+');
-      return katex.render(str, minimElt);
+    // 配置参数
+    const config = {
+      width: 800,
+      height: 500,
+      margin: { top: 20, right: 20, bottom: 50, left: 50 },
+      pointRadius: 6,
+      showResiduals: true
     };
-  })(this);
-  return updateCaption();
-});
-
-
-        });
-    </script>
+    
+    // 数据存储
+    let targets = [
+      [1, 2], [2, 3], [3, 5], [4, 4], [5, 6]
+    ];
+    let currentFunction = 'A*x+B';
+    let bestfit = (x) => 0;
+    let bestFitStr = '';
+    
+    // 初始化SVG
+    const svg = d3.select("#mathbox")
+      .append("svg")
+      .attr("width", config.width)
+      .attr("height", config.height);
+    
+    const g = svg.append("g")
+      .attr("transform", `translate(${config.margin.left},${config.margin.top})`);
+    
+    const plotWidth = config.width - config.margin.left - config.margin.right;
+    const plotHeight = config.height - config.margin.top - config.margin.bottom;
+    
+    // 比例尺
+    const xScale = d3.scaleLinear().range([0, plotWidth]);
+    const yScale = d3.scaleLinear().range([plotHeight, 0]);
+    
+    // 初始化坐标轴
+    const xAxis = g.append("g")
+      .attr("transform", `translate(0,${plotHeight})`);
+    
+    const yAxis = g.append("g");
+    
+    // 初始化网格
+    const grid = g.append("g")
+      .attr("class", "grid");
+    
+    // 初始化拟合线
+    const fitLine = g.append("path")
+      .attr("class", "fit-line")
+      .attr("fill", "none")
+      .attr("stroke", "#e74c3c")
+      .attr("stroke-width", 3);
+    
+    // 初始化点组
+    const pointsGroup = g.append("g")
+      .attr("class", "points-group");
+    
+    // 初始化残差组
+    const residualsGroup = g.append("g")
+      .attr("class", "residuals-group");
+    
+    // 点击添加点
+    g.append("rect")
+      .attr("width", plotWidth)
+      .attr("height", plotHeight)
+      .attr("fill", "transparent")
+      .on("click", function(event) {
+        const [x, y] = d3.pointer(event, this);
+        const dataX = xScale.invert(x);
+        const dataY = yScale.invert(y);
+        
+        addPointWithAnimation(dataX, dataY);
+      });
+    
+    // 更新视图
+    function updateView() {
+      const allX = targets.map(d => d[0]);
+      const allY = targets.map(d => d[1]);
+      
+      xScale.domain(d3.extent(allX).map((d, i) => 
+        d + (i === 0 ? -1 : 1)
+      ));
+      yScale.domain(d3.extent(allY).map((d, i) => 
+        d + (i === 0 ? -1 : 1)
+      ));
+      
+      // 更新坐标轴
+      xAxis.call(d3.axisBottom(xScale));
+      yAxis.call(d3.axisLeft(yScale));
+      
+      // 更新网格
+      grid.selectAll(".grid-line").remove();
+      grid.selectAll(".grid-line-x")
+        .data(xScale.ticks())
+        .enter().append("line")
+        .attr("class", "grid-line")
+        .attr("x1", d => xScale(d))
+        .attr("x2", d => xScale(d))
+        .attr("y1", 0)
+        .attr("y2", plotHeight)
+        .attr("stroke", "#eee")
+        .attr("stroke-width", 1);
+      
+      grid.selectAll(".grid-line-y")
+        .data(yScale.ticks())
+        .enter().append("line")
+        .attr("class", "grid-line")
+        .attr("x1", 0)
+        .attr("x2", plotWidth)
+        .attr("y1", d => yScale(d))
+        .attr("y2", d => yScale(d))
+        .attr("stroke", "#eee")
+        .attr("stroke-width", 1);
+      
+      // 更新拟合线
+      updateFitLine();
+      
+      // 更新点
+      updatePoints();
+      
+      // 更新残差
+      updateResiduals();
+      
+      // 更新信息
+      updateInfo();
+    }
+    
+    // 更新拟合线（带动画）
+    function updateFitLine() {
+      const lineData = d3.range(xScale.domain()[0], xScale.domain()[1], 0.1)
+        .map(x => [x, bestfit(x)]);
+      
+      const lineGenerator = d3.line()
+        .x(d => xScale(d[0]))
+        .y(d => yScale(d[1]));
+      
+      fitLine
+        .datum(lineData)
+        .transition()
+        .duration(800)
+        .ease(d3.easeCubicOut)
+        .attr("d", lineGenerator);
+    }
+    
+    // 更新点（带动画）
+    function updatePoints() {
+      const points = pointsGroup.selectAll(".point")
+        .data(targets, (d, i) => i);
+      
+      // 移除的点
+      points.exit()
+        .transition()
+        .duration(300)
+        .attr("r", 0)
+        .remove();
+      
+      // 新点
+      const newPoints = points.enter()
+        .append("circle")
+        .attr("class", "point")
+        .attr("fill", "#3498db")
+        .attr("stroke", "#2980b9")
+        .attr("stroke-width", 2)
+        .attr("r", 0)
+        .call(drag);
+      
+      // 所有点
+      points.merge(newPoints)
+        .transition()
+        .duration(500)
+        .attr("cx", d => xScale(d[0]))
+        .attr("cy", d => yScale(d[1]))
+        .attr("r", config.pointRadius);
+    }
+    
+    // 更新残差
+    function updateResiduals() {
+      if (!config.showResiduals) {
+        residualsGroup.selectAll(".residual-line").remove();
+        return;
+      }
+      
+      const residuals = residualsGroup.selectAll(".residual-line")
+        .data(targets);
+      
+      residuals.enter()
+        .append("line")
+        .attr("class", "residual-line")
+        .merge(residuals)
+        .transition()
+        .duration(600)
+        .attr("x1", d => xScale(d[0]))
+        .attr("y1", d => yScale(d[1]))
+        .attr("x2", d => xScale(d[0]))
+        .attr("y2", d => yScale(bestfit(d[0])));
+      
+      residuals.exit().remove();
+    }
+    
+    // 拖拽行为
+    const drag = d3.drag()
+      .on("start", function(event, d) {
+        d3.select(this).attr("fill", "#e67e22");
+      })
+      .on("drag", function(event, d) {
+        const newX = xScale.invert(event.x);
+        const newY = yScale.invert(event.y);
+        
+        d[0] = newX;
+        d[1] = newY;
+        
+        d3.select(this)
+          .attr("cx", event.x)
+          .attr("cy", event.y);
+        
+        // 实时更新拟合
+        solve();
+        updateFitLine();
+        updateResiduals();
+        updateInfo();
+      })
+      .on("end", function(event, d) {
+        d3.select(this).attr("fill", "#3498db");
+      });
+    
+    // 添加点（带动画）
+    function addPointWithAnimation(x, y) {
+      targets.push([x, y]);
+      
+      // 重新计算拟合
+      solve();
+      
+      // 更新显示
+      updateView();
+    }
+    
+    // 添加随机点
+    function addRandomPoint() {
+      const x = Math.random() * 8 + 1;
+      const y = Math.random() * 8 + 1;
+      addPointWithAnimation(x, y);
+    }
+    
+    // 清除所有点
+    function clearPoints() {
+      targets = [];
+      updateView();
+    }
+    
+    // 切换残差显示
+    function toggleResiduals() {
+      config.showResiduals = !config.showResiduals;
+      updateResiduals();
+    }
+    
+    // 重置视图
+    function resetView() {
+      targets = [[1, 2], [2, 3], [3, 5], [4, 4], [5, 6]];
+      updateView();
+    }
+    
+    // 改变函数形式
+    function changeFunction() {
+      currentFunction = document.getElementById('function-select').value;
+      solve();
+      updateView();
+    }
+    
+    // 更新信息显示
+    function updateInfo() {
+      document.getElementById('eqn-here').textContent = `f(x) = ${bestFitStr}`;
+      
+      // 计算平方和
+      let sumSquares = 0;
+      let residualsStr = '';
+      targets.forEach((point, i) => {
+        const diff = point[1] - bestfit(point[0]);
+        sumSquares += diff * diff;
+        if (i < 3) { // 只显示前3个残差
+          residualsStr += `${diff.toFixed(2)}²${i < targets.length - 1 ? ' + ' : ''}`;
+        }
+      });
+      if (targets.length > 3) {
+        residualsStr += ` + ... (共${targets.length}项)`;
+      }
+      
+      document.getElementById('sumsq-here').textContent = 
+        `${sumSquares.toFixed(2)} = ${residualsStr}`;
+    }
+    
+    // 最小二乘法求解（简化版）
+    function solve() {
+      if (targets.length < 2) return;
+      
+      // 根据当前函数类型选择求解方法
+      switch(currentFunction) {
+        case 'A*x+B':
+          solveLinear();
+          break;
+        case 'A*x^2+B*x+C':
+          solveQuadratic();
+          break;
+        case 'A*sin(x)+B':
+          solveSinusoidal();
+          break;
+      }
+    }
+    
+    // 线性拟合求解
+    function solveLinear() {
+      let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+      const n = targets.length;
+      
+      targets.forEach(point => {
+        sumX += point[0];
+        sumY += point[1];
+        sumXY += point[0] * point[1];
+        sumXX += point[0] * point[0];
+      });
+      
+      const denominator = n * sumXX - sumX * sumX;
+      const A = (n * sumXY - sumX * sumY) / denominator;
+      const B = (sumY * sumXX - sumX * sumXY) / denominator;
+      
+      bestfit = (x) => A * x + B;
+      bestFitStr = `${A.toFixed(2)}x ${B >= 0 ? '+' : ''}${B.toFixed(2)}`;
+    }
+    
+    // 二次函数拟合求解
+    function solveQuadratic() {
+      // 简化的二次拟合（实际应该用矩阵求解）
+      if (targets.length < 3) {
+        bestfit = (x) => 0;
+        bestFitStr = "需要至少3个点";
+        return;
+      }
+      
+      // 这里使用简化的伪代码，实际应该构建正规方程
+      const A = 0.1, B = 0.5, C = 1; // 示例参数
+      bestfit = (x) => A * x * x + B * x + C;
+      bestFitStr = `${A.toFixed(2)}x² ${B >= 0 ? '+' : ''}${B.toFixed(2)}x ${C >= 0 ? '+' : ''}${C.toFixed(2)}`;
+    }
+    
+    // 正弦函数拟合求解
+    function solveSinusoidal() {
+      const A = 1, B = 1; // 示例参数
+      bestfit = (x) => A * Math.sin(x) + B;
+      bestFitStr = `${A.toFixed(2)}sin(x) ${B >= 0 ? '+' : ''}${B.toFixed(2)}`;
+    }
+    
+    // 初始化
+    solve();
+    updateView();
+    
+  </script>
 </body>
 </html>

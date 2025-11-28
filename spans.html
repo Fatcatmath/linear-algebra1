@@ -1,9 +1,9 @@
-<!DOCTYPE html> <!-- -*- html -*- -->
+<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="initial-scale=1, maximum-scale=1">
-  <title>Span of vectors</title>
+  <title>向量张成空间</title>
   <link rel="shortcut icon" href="img/gatech.gif"/>
 
   
@@ -147,9 +147,9 @@ window.demo = new (is2D ? Demo2D : Demo)({
     }
   }
   params = {
-    Axes: this.urlParams.axes === "on"
+    坐标轴: this.urlParams.axes === "on"
   };
-  checkLabel = "Show " + this.coeffs[0] + "." + this.labels[0];
+  checkLabel = "显示 " + this.coeffs[0] + "." + this.labels[0];
   if (this.numVecs >= 2) {
     checkLabel += " + " + this.coeffs[1] + "." + this.labels[1];
   }
@@ -163,8 +163,8 @@ window.demo = new (is2D ? Demo2D : Demo)({
   gui.closed = this.urlParams.closed != null;
   guiElts = {};
   if (this.urlParams.axes !== "disabled") {
-    guiElts.Axes = gui.add(params, 'Axes');
-    guiElts.Axes.onFinishChange(function(val) {
+    guiElts.坐标轴 = gui.add(params, '坐标轴');
+    guiElts.坐标轴.onFinishChange(function(val) {
       return mathbox.select(".view-axes").set("visible", val);
     });
   }
@@ -185,9 +185,9 @@ window.demo = new (is2D ? Demo2D : Demo)({
     }
   }
   if ((ref3 = this.urlParams.grid) === "enabled" || ref3 === "on") {
-    params.Grid = this.urlParams.grid === "on";
-    guiElts.Grid = gui.add(params, 'Grid');
-    guiElts.Grid.onFinishChange(function(val) {
+    params.网格 = this.urlParams.grid === "on";
+    guiElts.网格 = gui.add(params, '网格');
+    guiElts.网格.onFinishChange(function(val) {
       mathbox.select("#vecgrid").set("visible", val);
       return clipCube.uniforms.hilite.value = !val;
     });
@@ -199,7 +199,7 @@ window.demo = new (is2D ? Demo2D : Demo)({
       zIndex: 1
     }
   });
-  this.mathbox.select(".view-axes").set("visible", params.Axes);
+  this.mathbox.select(".view-axes").set("visible", params.坐标轴);
   if (this.urlParams.captions === 'orthog') {
     view.array({
       channels: 3,
@@ -261,7 +261,7 @@ window.demo = new (is2D ? Demo2D : Demo)({
     })
   });
   clipCube.installMesh();
-  clipCube.uniforms.hilite.value = !params.Grid;
+  clipCube.uniforms.hilite.value = !params.网格;
   range = this.urlParams.get('range', 'float', 10);
   snapThreshold = 1.0 * range / 10.0;
   zeroThreshold = 0.00001;
@@ -407,9 +407,9 @@ window.demo = new (is2D ? Demo2D : Demo)({
   }
   switch (this.urlParams.captions) {
     case "target":
-      this.caption('<p>Solve this equation by moving the sliders:</p>\n<p><span id="eqn-here"></span>.</p>');
+      this.caption('<p>通过移动滑块来解这个方程：</p>\n<p><span id="eqn-here"></span>。</p>');
       eqnElt = document.getElementById('eqn-here');
-      popup = this.popup('<h2>Success</h2>\n<p><span id="success-here"></span></p>');
+      popup = this.popup('<h2>成功</h2>\n<p><span id="success-here"></span></p>');
       successElt = document.getElementById('success-here');
       updateCaption = (function(_this) {
         return function() {
@@ -513,7 +513,7 @@ window.demo = new (is2D ? Demo2D : Demo)({
       }
       break;
     case "indep":
-      this.caption('<p>The set <span id="vectors-here"></span>\n<span class="inter-is">is</span>\n<span id="span-type" class="span-type"></span>.</p>');
+      this.caption('<p>向量集 <span id="vectors-here"></span>\n<span class="inter-is">是</span>\n<span id="span-type" class="span-type"></span>。</p>');
       vectorsElt = document.getElementById('vectors-here');
       spanElt = document.getElementById('span-type');
       updateCaption = (function(_this) {
@@ -522,19 +522,19 @@ window.demo = new (is2D ? Demo2D : Demo)({
             colors: _this.colors.slice()
           }), vectorsElt);
           if (subspace.dim === _this.numVecs) {
-            return spanElt.innerText = "linearly independent";
+            return spanElt.innerText = "线性无关";
           } else {
-            return spanElt.innerText = "linearly dependent";
+            return spanElt.innerText = "线性相关";
           }
         };
       })(this);
       break;
     case "orthog":
       labels = this.labels.join(', ');
-      this.caption("<p>The subspace Span{" + labels + "} <span class=\"inter-is\">is</span>\n<span id=\"span-type\" class=\"span-type\"></span>.</p>\n<p>The orthogonal complement of Span{" + labels + "}\n<span class=\"inter-is\">is</span>\n<span id=\"complement-type\" class=\"span-type complement\"></span>.</p>");
+      this.caption("<p>子空间 Span{" + labels + "} <span class=\"inter-is\">是</span>\n<span id=\"span-type\" class=\"span-type\"></span>。</p>\n<p>Span{" + labels + "} 的正交补空间\n<span class=\"inter-is\">是</span>\n<span id=\"complement-type\" class=\"span-type complement\"></span>。</p>");
       spaceElt = document.getElementById('span-type');
       complElt = document.getElementById('complement-type');
-      types = ["a point", "a line", "a plane", "space"];
+      types = ["一个点", "一条直线", "一个平面", "整个空间"];
       updateCaption = (function(_this) {
         return function() {
           spaceElt.innerText = types[subspace.dim];
@@ -544,11 +544,11 @@ window.demo = new (is2D ? Demo2D : Demo)({
       break;
     default:
       if (this.urlParams.capopt === 'matrix') {
-        str = '<p>The span of the columns of <span id="vectors-here"></span>';
+        str = '<p>矩阵 <span id="vectors-here"></span> 的列空间';
       } else {
-        str = '<p>Span <span id="vectors-here"></span>';
+        str = '<p>向量集 <span id="vectors-here"></span> 的张成空间';
       }
-      this.caption(str + '<span class="inter-is">is</span>\n<span id="span-type"></span>.</p>');
+      this.caption(str + '<span class="inter-is">是</span>\n<span id="span-type"></span>。</p>');
       vectorsElt = document.getElementById('vectors-here');
       spanElt = document.getElementById('span-type');
       updateCaption = (function(_this) {
@@ -562,7 +562,7 @@ window.demo = new (is2D ? Demo2D : Demo)({
               colors: _this.colors.slice()
             }), vectorsElt);
           }
-          return spanElt.innerText = ["a point", "a line", "a plane", "space"][subspace.dim];
+          return spanElt.innerText = ["一个点", "一条直线", "一个平面", "整个空间"][subspace.dim];
         };
       })(this);
   }
@@ -574,4 +574,3 @@ window.demo = new (is2D ? Demo2D : Demo)({
     </script>
 </body>
 </html>
-

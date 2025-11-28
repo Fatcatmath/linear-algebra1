@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Interactive Row Reduction</title>
+  <title>交互式行化简</title>
   <link rel="stylesheet" href="css/rrinter.css?vers=99dfe5">
   <meta name="viewport" content="initial-scale=1, maximum-scale=1">
   <style>
@@ -25,24 +25,23 @@
 </head>
 <body>
     <div class="page">
-    <h1>Interactive Row Reduction</h1>
+    <h1>交互式行化简</h1>
     <div id="mathbox">
         <div class="row-ref inactive">
-            Matrix is in <i>row echelon form</i>.
+            矩阵已化为<i>行阶梯形</i>。
         </div>
         <div class="row-rref inactive">
-            Matrix is in <i>reduced row echelon form</i>.
+            矩阵已化为<i>简化行阶梯形</i>。
         </div>
     </div>
     <div class="newmat">
         <div>
             <span>
-                Enter a new matrix here.  Put one row on each line, and separate
-                columns by commas.  You can use simple mathematical expressions
-                for the matrix entries.
+                在此输入新矩阵。每行输入一行数据，列之间用逗号分隔。
+                您可以使用简单的数学表达式作为矩阵元素。
             </span><br>
             <textarea rows="5" cols="30"></textarea><br>
-            <button class="ops-button">Use this matrix</button>
+            <button class="ops-button">使用此矩阵</button>
         </div>
     </div>
     <div class="centered" id="rrmat-ui">
@@ -65,28 +64,28 @@
                 <span class="pages"></span>
             </div>
             <div class="newmat-button">
-                <button class="ops-button">Enter a new matrix</button>
+                <button class="ops-button">输入新矩阵</button>
             </div>
             <br>
             <div class="row-ops">
                 <span class="ops-label row-swap">
-                    <button class="ops-button">Swap rows</button>
+                    <button class="ops-button">交换行</button>
                 </span><span class="ops-control row-swap">
-                    <span class="row-selector"></span> and
+                    <span class="row-selector"></span> 和
                     <span class="row-selector"></span>
                 </span>
                 <span class="ops-label row-mult">
-                    <button class="ops-button">Multiply row</button>
+                    <button class="ops-button">乘以行</button>
                 </span><span class="ops-control row-mult">
-                    <span class="row-selector"></span> by
+                    <span class="row-selector"></span> 乘以
                     <input type="text">
                 </span>
                 <span class="ops-label row-rrep">
-                    <button class="ops-button">Row replacement</button>
+                    <button class="ops-button">行替换</button>
                 </span><span class="ops-control row-rrep">
-                    <span>Add</span><input type="text"> times
+                    <span>将</span><input type="text"> 乘以
                     <span class="row-selector"></span>
-                    to
+                    <span>加到</span>
                     <span class="row-selector"></span>
                 </span>
             </div>
@@ -102,9 +101,9 @@
     DomReady.ready(function() {
 
         // TODO:
-        //  * Test on other browsers
+        //  * 在其他浏览器上测试
 
-        // Install interactive code
+        // 安装交互代码
         var mat = RRInter.install();
         if(!mat)
             return;
@@ -129,10 +128,10 @@
                 lookAt: -width/4,
             },
         });
-        if (mathbox.fallback) throw "WebGL not supported"
+        if (mathbox.fallback) throw "WebGL不支持"
         var three = mathbox.three;
         three.renderer.setClearColor(new THREE.Color(0xFFFFFF), 1.0);
-        // Place camera
+        // 放置相机
         var camera = mathbox
             .camera({
                 proxy: false,
@@ -140,13 +139,13 @@
                 fov: Math.atan(height/ortho) * 360 / π,
                 lookAt: [width/4,0,0],
             });
-        // 2D cartesian
+        // 2D笛卡尔坐标系
         var view = mathbox
             .cartesian({
                 range: [[-width/2, width/2], [-height/2, height/2], [-50,50]],
                 scale: [width, height, 100],
             });
-        // Calibrate focus distance for units
+        // 校准焦距单位
         mathbox.set('focus', ortho);
 
         var augment = parseInt(RRInter.urlParams.augment);
@@ -160,7 +159,7 @@
             });
         rrmat.setMatrix(mat);
 
-        // Highlight pivots initially
+        // 初始高亮主元
         var slide = rrmat.highlightPivots();
         rrmat.state = slide.transform(rrmat.state);
 

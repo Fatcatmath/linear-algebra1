@@ -1,4 +1,4 @@
-<!DOCTYPE html> <!-- -*- html -*- -->
+<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
@@ -164,31 +164,31 @@ window.demo = new (size === 2 ? Demo2D : Demo)({}, function() {
   var basisElt, clipCube, coeffs, comboElt, complement, computeOut, decompElt, decompLabels, distElt, gui, hexColorBasis1, hexColorBasis2, hexColorPerp, hexColorProj, hexColorSummand1, hexColorSummand2, params, snap, subspace, sumElt, tmpVec, updateCaptions, view;
   window.mathbox = this.mathbox;
   params = {
-    'Show Basis': showBasis,
-    'Show Grid': showGrid,
-    'Show Decomp': showDecomp,
-    'Show Distance': showDistance,
-    'Show Summands': showSummands
+    '显示基向量': showBasis,
+    '显示网格': showGrid,
+    '显示分解': showDecomp,
+    '显示距离': showDistance,
+    '显示分量': showSummands
   };
   gui = new dat.GUI();
   gui.closed = this.urlParams.closed != null;
-  gui.add(params, 'Show Basis').onFinishChange(function(val) {
+  gui.add(params, '显示基向量').onFinishChange(function(val) {
     showBasis = val;
     return mathbox.select('.basis').set('visible', val);
   });
-  gui.add(params, 'Show Grid').onFinishChange(function(val) {
+  gui.add(params, '显示网格').onFinishChange(function(val) {
     showBasis = val;
     return mathbox.select('#vecgrid').set('visible', val);
   });
-  gui.add(params, 'Show Decomp').onFinishChange(function(val) {
+  gui.add(params, '显示分解').onFinishChange(function(val) {
     showDecomp = val;
     return mathbox.select('.decomp').set('visible', val);
   });
-  gui.add(params, 'Show Distance').onFinishChange(function(val) {
+  gui.add(params, '显示距离').onFinishChange(function(val) {
     showDistance = val;
     return mathbox.select('.distance').set('visible', val);
   });
-  gui.add(params, 'Show Summands').onFinishChange(function(val) {
+  gui.add(params, '显示分量').onFinishChange(function(val) {
     showSummands = val;
     return mathbox.select('.summands').set('visible', val);
   });
@@ -350,7 +350,7 @@ window.demo = new (size === 2 ? Demo2D : Demo)({}, function() {
   }).text({
     live: false,
     width: 1,
-    data: ['closest']
+    data: ['最近点']
   }).label({
     classes: ['distance'],
     color: surfaceColor.darken(.1).arr(),

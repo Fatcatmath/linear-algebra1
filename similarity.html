@@ -236,13 +236,13 @@ params = {};
 
 if (urlParams.snap !== 'disabled') {
   gui = true;
-  params["Snap axes"] = urlParams.snap !== 'off';
+  params["对齐轴线"] = urlParams.snap !== 'off';
   gui = new dat.GUI;
   gui.closed = urlParams.closed != null;
-  gui.add(params, "Snap axes").onFinishChange(function(val) {
+  gui.add(params, "对齐轴线").onFinishChange(function(val) {
     return snap = val;
   });
-  snap = params["Snap axes"];
+  snap = params["对齐轴线"];
 }
 
 window.demo1 = new (size === 3 ? Demo : Demo2D)({
